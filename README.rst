@@ -1,7 +1,11 @@
 `pg_dump_splitsort.py` is a handy script for pre-processing `pg_dump` output to
 make it more suitable for diffing and storing in version control:
 
-It splits the dump into the following files:
+Usage::
+
+    python pg_dump_splitsort.py <filename>.sql
+
+The script splits the dump into the following files:
 
 | ``0000_prologue.sql``:
     everything up to the first COPY
