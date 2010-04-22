@@ -1,5 +1,6 @@
-`pg_dump_splitsort.py` is a handy script for pre-processing `pg_dump` output to
-make it more suitable for diffing and storing in version control:
+``pg_dump_splitsort.py`` is a handy script for pre-processing PostgreSQL's
+``pg_dump`` output to make it more suitable for diffing and storing in version
+control.
 
 Usage::
 
