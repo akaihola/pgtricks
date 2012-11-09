@@ -2,9 +2,10 @@
 
 import sys
 import re
-from bisect import insort
+
 
 COPY_RE = re.compile(r'COPY .*? \(.*?\) FROM stdin;\n$')
+
 
 def try_float(s):
     if not s or s[0] not in '0123456789.-':
@@ -14,6 +15,7 @@ def try_float(s):
         return float(s)
     except ValueError:
         return s
+
 
 def linecomp(l1, l2):
     p1 = l1.split('\t', 1)
@@ -27,16 +29,22 @@ DATA_COMMENT_RE = re.compile('-- Data for Name: (?P<table>.*?); '
                              'Type: TABLE DATA; '
                              'Schema: (?P<schema>.*?);')
 
+
 class Matcher(object):
+    def __init__(self):
+        self._match = None
+
     def match(self, pattern, data):
         self._match = pattern.match(data)
         return self._match
 
-    def group(self, *args):
-        return self._match.group(*args)
+    def __getattr__(self, attname):
+        if not self._match:
+            raise ValueError('Pattern did not match')
+        return getattr(self._match, attname)
 
 
-def main():
+def split_sql_file(sql_filepath):
 
     output = None
     buf = []
@@ -55,7 +63,7 @@ def main():
     output = new_output('0000_prologue.sql')
     matcher = Matcher()
 
-    for line in file(sys.argv[1]):
+    for line in file(sql_filepath):
         if copy_lines is None:
             if line in ('\n', '--\n'):
                 buf.append(line)
@@ -65,10 +73,11 @@ def main():
             else:
                 if matcher.match(DATA_COMMENT_RE, line):
                     counter += 1
-                    schema = matcher.group('schema')
-                    table = matcher.group('table')
                     output = new_output(
-                        '%(counter)04d_%(schema)s.%(table)s.sql' % locals())
+                        '{counter:04}_{schema}.{table}.sql'.format(
+                            counter=counter,
+                            schema=matcher.group('schema'),
+                            table=matcher.group('table')))
                 elif COPY_RE.match(line):
                     copy_lines = []
                 elif 1 <= counter < 9999:
@@ -88,4 +97,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    split_sql_file(sys.argv[1])
