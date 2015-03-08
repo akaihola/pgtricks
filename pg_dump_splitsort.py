@@ -28,7 +28,8 @@ def linecomp(l1, l2):
 DATA_COMMENT_RE = re.compile('-- Data for Name: (?P<table>.*?); '
                              'Type: TABLE DATA; '
                              'Schema: (?P<schema>.*?);')
-
+SEQUENCE_SET_RE = re.compile(r'-- Name: .+; Type: SEQUENCE SET; Schema: |'
+                             r"SELECT pg_catalog\.setval\('")
 
 class Matcher(object):
     def __init__(self):
@@ -80,6 +81,8 @@ def split_sql_file(sql_filepath):
                             table=matcher.group('table')))
                 elif COPY_RE.match(line):
                     copy_lines = []
+                elif SEQUENCE_SET_RE.match(line):
+                    pass
                 elif 1 <= counter < 9999:
                     counter = 9999
                     output = new_output('%04d_epilogue.sql' % counter)
