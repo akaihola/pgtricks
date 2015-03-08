@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import re
 
@@ -47,6 +48,8 @@ class Matcher(object):
 
 def split_sql_file(sql_filepath):
 
+    directory = os.path.dirname(sql_filepath)
+
     output = None
     buf = []
 
@@ -54,17 +57,17 @@ def split_sql_file(sql_filepath):
         output.writelines(buf)
         buf[:] = []
 
-    def new_output(path):
+    def new_output(filename):
         if output:
             output.close()
-        return file(path, 'w')
+        return open(os.path.join(directory, filename), 'w')
 
     copy_lines = None
     counter = 0
     output = new_output('0000_prologue.sql')
     matcher = Matcher()
 
-    for line in file(sql_filepath):
+    for line in open(sql_filepath):
         if copy_lines is None:
             if line in ('\n', '--\n'):
                 buf.append(line)
