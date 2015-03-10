@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 from argparse import ArgumentParser
 from glob import glob
 import os
 from subprocess import CalledProcessError, check_output
 
-from pg_dump_splitsort import split_sql_file
+from pgtricks.pg_dump_splitsort import split_sql_file
 
 
 def parse_arguments():

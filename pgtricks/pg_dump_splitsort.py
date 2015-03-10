@@ -102,5 +102,9 @@ def split_sql_file(sql_filepath):
                 copy_lines.append(line)
 
 
-if __name__ == '__main__':
+def main():
     split_sql_file(sys.argv[1])
+
+
+if __name__ == '__main__':
+    main()
