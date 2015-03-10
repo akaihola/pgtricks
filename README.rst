@@ -1,10 +1,20 @@
-``pg_dump_splitsort.py`` is a handy script for pre-processing PostgreSQL's
+==========
+ pgtricks
+==========
+
+This package contains two tools for backing up PostgreSQL database dumps.
+
+
+pg_dump_splitsort
+=================
+
+``pg_dump_splitsort`` is a handy script for pre-processing PostgreSQL's
 ``pg_dump`` output to make it more suitable for diffing and storing in version
 control.
 
 Usage::
 
-    python pg_dump_splitsort.py <filename>.sql
+    pg_dump_splitsort <filename>.sql
 
 The script splits the dump into the following files:
 
@@ -41,3 +51,26 @@ differences. Here's how to configure git to use color in diffs::
 
 **Note:** If you have created/dropped/renamed tables, remember to delete all
 `.sql` files before post-processing the new dump.
+
+
+pg_incremental_backup
+=====================
+
+The ``pg_incremental_backup`` script
+
+- makes a database dump using ``pg_dump``
+- splits the dump into per-table files using ``pg_dump_splitsort``
+- creates or commits changes into a local Git repository containing the dump
+- pushes the changes to the remote repository
+
+Usage::
+
+    pg_incremental_backup [-h] [--output-dir OUTPUT_DIR] database [remote]
+
+    positional arguments:
+      database
+      remote
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --output-dir OUTPUT_DIR, -o OUTPUT_DIR
