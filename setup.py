@@ -2,7 +2,7 @@ from setuptools import setup
 
 
 setup(name='pgtricks',
-      version='0.9',
+      version='0.9.1',
       description='PostgreSQL utilities',
       long_description=open('README.rst').read(),
       author='Antti Kaihola',
