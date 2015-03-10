@@ -1,3 +1,7 @@
 *~
 /README.html
 *.pyc
+/*.egg-info
+/build
+/dist
+/*.egg
