@@ -12,7 +12,7 @@ from pg_dump_splitsort import split_sql_file
 def parse_arguments():
     parser = ArgumentParser()
     parser.add_argument('database')
-    parser.add_argument('remote')
+    parser.add_argument('remote', nargs='?')
     parser.add_argument('--output-dir', '-o', default='.')
     return parser.parse_args()
 
@@ -36,15 +36,18 @@ def commit_database(directory, remote):
         if not os.path.isdir(os.path.join(directory, '.git')):
             git('init')
         if not git('config', '--get', 'remote.origin.url'):
+            if not remote:
+                raise ValueError("Can't set remote repository URL - missing "
+                                 "from the command line")
             git('remote', 'add', 'origin', remote)
         current_origin = git('config', '--get', 'remote.origin.url')[:-1]
-        if current_origin != remote:
+        if remote and current_origin != remote:
             raise ValueError("Git remote origin {!r} doesn't match {!r}"
                              .format(current_origin, remote))
         git('add', '-u')
         git('add', '*.sql')
         if git('status', '--porcelain'):
-            git('commit', '-m', '"Automatic database update"')
+            git('commit', '-m', 'Automatic database update')
             git('push', 'origin', 'master')
     except CalledProcessError as exc_info:
         print(exc_info.output)
