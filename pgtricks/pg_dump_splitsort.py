@@ -100,6 +100,7 @@ def split_sql_file(sql_filepath):
                 copy_lines = None
             else:
                 copy_lines.append(line)
+    flush()
 
 
 def main():
