@@ -48,7 +48,7 @@ def split_sql_file(sqlpath, target_directory):
 
     search_path = "SET search_path = public;"
 
-    parts = [match.start() for match in SPLIT_RE.finditer(sql)]
+    parts = [match.start() for match in SPLIT_RE.finditer(sql)] + [len(sql)]
     for start, end in zip(parts[:-1], parts[1:]):
         part = sql[start:end]
         match = IDENTIFY_RE.match(part)
