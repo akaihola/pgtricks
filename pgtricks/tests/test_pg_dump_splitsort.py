@@ -1,25 +1,36 @@
+from functools import cmp_to_key
+
 import pytest
 
 from pgtricks.pg_dump_splitsort import linecomp, try_float
 
 
 @pytest.mark.parametrize(
-    's, expect',
+    's1, s2, expect',
     [
-        ('', ''),
-        ('foo', 'foo'),
-        ('0', 0.0),
-        ('0.0', 0.0),
-        ('0.', 0.0),
-        ('4.2', 4.2),
-        ('-.42', -0.42),
-        (r'\N', r'\N'),
+        ('', '', ('', '')),
+        ('foo', '', ('foo', '')),
+        ('foo', 'bar', ('foo', 'bar')),
+        ('0', '1', (0.0, 1.0)),
+        ('0', 'one', ('0', 'one')),
+        ('0.0', '0.0', (0.0, 0.0)),
+        ('0.0', 'one point zero', ('0.0', 'one point zero')),
+        ('0.', '1.', (0.0, 1.0)),
+        ('0.', 'one', ('0.', 'one')),
+        ('4.2', '0.42', (4.2, 0.42)),
+        ('4.2', 'four point two', ('4.2', 'four point two')),
+        ('-.42', '-0.042', (-0.42, -0.042)),
+        ('-.42', 'minus something', ('-.42', 'minus something')),
+        (r'\N', r'\N', (r'\N', r'\N')),
+        ('foo', r'\N', ('foo', r'\N')),
+        ('-4.2', r'\N', ('-4.2', r'\N')),
     ],
 )
-def test_try_float(s, expect):
-    result = try_float(s)
-    assert type(result) == type(expect)
-    assert result == expect
+def test_try_float(s1, s2, expect):
+    result1, result2 = try_float(s1, s2)
+    assert type(result1) is type(expect[0])
+    assert type(result2) is type(expect[1])
+    assert (result1, result2) == expect
 
 
 @pytest.mark.parametrize(
@@ -45,8 +56,8 @@ def test_try_float(s, expect):
         ('foo\tbar\t0.42424242424242\tbaz', 'foo\tbar\t0.42424242424242\tbaz', 0),
         ('foo', '0', 1),
         ('0', 'foo', -1),
-        ('42', '', -1),
-        ('', '42', 1),
+        ('42', '', 1),
+        ('', '42', -1),
         ('42', '42.0', 0),
         ('42', r'\N', -1),
         (r'\N', '42', 1),
