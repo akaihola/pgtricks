@@ -59,3 +59,34 @@ def test_try_float(s, expect):
 def test_linecomp(l1, l2, expect):
     result = linecomp(l1, l2)
     assert result == expect
+
+
+def test_linecomp_by_sorting():
+    unsorted = [
+        '\t'.join(line)
+        for line in [
+            [r'\N', r'\N', r'\N'],
+            [r'\N', '', r'\N'],
+            [r'\N', r'\N', ''],
+            ['', r'\N', r'\N'],
+            [r'\N', '-.52', 'baz'],
+            [r'\N', '42', r'\N'],
+            [r'\N', '.42', 'bar'],
+            [r'\N', '-.4', 'foo'],
+            [r'\N', 'foo', '.42'],
+        ]
+    ]
+    sorted_lines = unsorted[:]
+    sorted_lines.sort(key=cmp_to_key(linecomp))
+    result = [s.split('\t') for s in sorted_lines]
+    assert result == [
+        ['', r'\N', r'\N'],
+        [r'\N', '', r'\N'],
+        [r'\N', '-.52', 'baz'],
+        [r'\N', '-.4', 'foo'],
+        [r'\N', '.42', 'bar'],
+        [r'\N', '42', r'\N'],
+        [r'\N', r'\N', ''],
+        [r'\N', r'\N', r'\N'],
+        [r'\N', 'foo', '.42'],
+    ]
