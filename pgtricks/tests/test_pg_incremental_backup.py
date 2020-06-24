@@ -35,7 +35,7 @@ class MakeGitTestCase(TestCase):
         git = pg_incremental_backup.make_git('directory/path')
         with patch.object(pg_incremental_backup,
                           'check_output') as self.check_output:
-            self.check_output.return_value = 'git output'
+            self.check_output.return_value = b'git output'
 
             self.result = git('arg1', 'arg2')
 
