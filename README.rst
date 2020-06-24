@@ -5,6 +5,18 @@
 This package contains two tools for backing up PostgreSQL database dumps.
 
 
+Installing
+==========
+
+To install in a virtualenv or globally as a superuser::
+
+    pip install pgtricks
+
+To install only for the current user::
+
+    pip install --user pgtricks
+
+
 pg_dump_splitsort
 =================
 

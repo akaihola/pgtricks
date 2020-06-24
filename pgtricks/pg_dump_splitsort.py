@@ -1,28 +1,27 @@
 #!/usr/bin/env python
 
-import os
-import sys
-import re
 import functools
+import os
+import re
+import sys
 
 COPY_RE = re.compile(r'COPY .*? \(.*?\) FROM stdin;\n$')
 
 
-def try_float(s):
-    if not s or s[0] not in '0123456789.-':
+def try_float(s1, s2):
+    if not s1 or not s2 or s1[0] not in '0123456789.-' or s2[0] not in '0123456789.-':
         # optimization
-        return s
+        return s1, s2
     try:
-        return float(s)
+        return float(s1), float(s2)
     except ValueError:
-        return s
+        return s1, s2
 
 
 def linecomp(l1, l2):
     p1 = l1.split('\t', 1)
     p2 = l2.split('\t', 1)
-    v1 = try_float(p1[0])
-    v2 = try_float(p2[0])
+    v1, v2 = try_float(p1[0], p2[0])
     result = (v1 > v2) - (v1 < v2)
     if not result and len(p1) == len(p2) == 2:
         return linecomp(p1[1], p2[1])
