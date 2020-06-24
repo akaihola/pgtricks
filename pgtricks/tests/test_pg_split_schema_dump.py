@@ -32,7 +32,7 @@ def test_split_sql_file(tmpdir):
         )
     )
 
-    split_sql_file(sqlpath, target_directory)
+    split_sql_file(str(sqlpath), str(target_directory))
 
     assert {path.basename for path in target_directory.listdir()} == {
         'public.table1.TABLE',
@@ -91,7 +91,7 @@ def test_split_sql_file_no_schema(tmpdir):
         )
     )
 
-    split_sql_file(sqlpath, target_directory)
+    split_sql_file(str(sqlpath), str(target_directory))
 
     assert {path.basename for path in target_directory.listdir()} == {
         'no_schema.table1.TABLE'
@@ -127,7 +127,7 @@ def test_split_sql_file_unrecognized_content(tmpdir):
     )
     with warnings.catch_warnings(record=True) as caught_warnings:
 
-        split_sql_file(sqlpath, target_directory)
+        split_sql_file(str(sqlpath), str(target_directory))
 
     assert {path.basename for path in target_directory.listdir()} == {
         'public.table1.TABLE',
