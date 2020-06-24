@@ -12,6 +12,7 @@ setup(name='pgtricks',
       entry_points={
           'console_scripts': [
               'pg_dump_splitsort = pgtricks.pg_dump_splitsort:main',
+              'pg_split_schema_dump = pgtricks.pg_split_schema_dump:main',
               'pg_incremental_backup = pgtricks.pg_incremental_backup:main']},
       classifiers=[
           'Development Status :: 4 - Beta',
