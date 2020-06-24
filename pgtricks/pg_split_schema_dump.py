@@ -17,6 +17,7 @@ Usage::
 import os
 import re
 import sys
+import warnings
 
 SPLIT_RE = re.compile(
     r'''
@@ -53,8 +54,14 @@ def split_sql_file(sqlpath, target_directory):
         part = sql[start:end]
         match = IDENTIFY_RE.match(part)
         if not match:
+            warnings.warn(
+                "Can't identify the following SQL chunk in {sqlpath}:\n"
+                "{divider}\n"
+                "{chunk}\n"
+                "{divider}".format(sqlpath=sqlpath, chunk=part, divider=77 * '=')
+            )
             print(part)
-            sys.exit(0)
+            continue
         name = match.group(1).replace(" ", "_")
         type_ = match.group(2).replace(" ", "_")
         schema = match.group(3)
