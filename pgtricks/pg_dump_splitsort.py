@@ -22,7 +22,7 @@ def linecomp(l1, l2):
     p1 = l1.split('\t', 1)
     p2 = l2.split('\t', 1)
     v1, v2 = try_float(p1[0], p2[0])
-    result = cmp(v1, v2)
+    result = (v1 > v2) - (v1 < v2)
     if not result and len(p1) == len(p2) == 2:
         return linecomp(p1[1], p2[1])
     return result
@@ -94,7 +94,7 @@ def split_sql_file(sql_filepath):
                 flush()
         else:
             if line == '\\.\n':
-                copy_lines.sort(cmp=linecomp)
+                copy_lines.sort(key=functools.cmp_to_key(linecomp))
                 buf.extend(copy_lines)
                 buf.append(line)
                 flush()

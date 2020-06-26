@@ -1,5 +1,9 @@
 from __future__ import print_function, unicode_literals
-from mock import patch
+try:
+    from unittest.mock import patch
+except ImportError:
+    # Python 2.7
+    from mock import patch
 import os
 from shutil import rmtree
 from tempfile import mkdtemp
@@ -35,7 +39,7 @@ class MakeGitTestCase(TestCase):
         git = pg_incremental_backup.make_git('directory/path')
         with patch.object(pg_incremental_backup,
                           'check_output') as self.check_output:
-            self.check_output.return_value = 'git output'
+            self.check_output.return_value = b'git output'
 
             self.result = git('arg1', 'arg2')
 
