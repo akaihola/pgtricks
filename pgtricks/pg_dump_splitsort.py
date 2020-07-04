@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import functools
+import io
 import os
 import re
 import sys
@@ -54,12 +55,20 @@ def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
 
     directory = os.path.dirname(sql_filepath)
 
-    output: Optional[IO[str]] = None
+    # `output` needs to be instantiated before the inner functions are defined.
+    # Assign it a dummy string I/O object so type checking is happy.
+    # This will be replaced with the prologue SQL file object.
+    output: IO[str] = io.StringIO()
     buf: List[str] = []
 
     def flush() -> None:
-        cast(IO[str], output).writelines(buf)
+        output.writelines(buf)
         buf[:] = []
+
+    def writeline(line_: str) -> None:
+        if buf:
+            flush()
+        output.write(line_)
 
     def new_output(filename: str) -> IO[str]:
         if output:
@@ -76,8 +85,7 @@ def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
             if line in ('\n', '--\n'):
                 buf.append(line)
             elif line.startswith('SET search_path = '):
-                flush()
-                buf.append(line)
+                writeline(line)
             else:
                 if matcher.match(DATA_COMMENT_RE, line):
                     counter += 1
@@ -95,15 +103,12 @@ def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
                 elif 1 <= counter < 9999:
                     counter = 9999
                     output = new_output('%04d_epilogue.sql' % counter)
-                buf.append(line)
-                flush()
+                writeline(line)
         else:
             if line == "\\.\n":
                 for copy_line in copy_lines:
-                    buf.append(copy_line)
-                    flush()
-                buf.append(line)
-                flush()
+                    writeline(copy_line)
+                writeline(line)
                 copy_lines = None
             else:
                 copy_lines.append(line)
