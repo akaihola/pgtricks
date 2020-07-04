@@ -5,7 +5,7 @@ import io
 import os
 import re
 import sys
-from typing import IO, List, Match, Optional, Pattern, Tuple, Union, cast, Iterable
+from typing import IO, Iterable, List, Match, Optional, Pattern, Tuple, Union, cast
 
 from pgtricks.mergesort import MergeSort
 
@@ -75,13 +75,13 @@ def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
             output.close()
         return open(os.path.join(directory, filename), 'w')
 
-    copy_lines: Optional[MergeSort] = None
+    sorted_data_lines: Optional[MergeSort] = None
     counter = 0
     output = new_output('0000_prologue.sql')
     matcher = Matcher()
 
     for line in open(sql_filepath):
-        if copy_lines is None:
+        if sorted_data_lines is None:
             if line in ('\n', '--\n'):
                 buf.append(line)
             elif line.startswith('SET search_path = '):
@@ -95,7 +95,7 @@ def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
                             schema=matcher.group('schema'),
                             table=matcher.group('table')))
                 elif COPY_RE.match(line):
-                    copy_lines = MergeSort(
+                    sorted_data_lines = MergeSort(
                         key=functools.cmp_to_key(linecomp), max_memory=max_memory
                     )
                 elif SEQUENCE_SET_RE.match(line):
@@ -106,11 +106,11 @@ def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
                 writelines([line])
         else:
             if line == "\\.\n":
-                writelines(copy_lines)
+                writelines(sorted_data_lines)
                 writelines(line)
-                copy_lines = None
+                sorted_data_lines = None
             else:
-                copy_lines.append(line)
+                sorted_data_lines.append(line)
     flush()
 
 
