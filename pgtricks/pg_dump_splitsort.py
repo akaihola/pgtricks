@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 import functools
-import io
 import os
 import re
-from typing import Tuple, Union, cast, Pattern, Match, Optional, List, IO, Any
-
 import sys
+from typing import IO, List, Match, Optional, Pattern, Tuple, Union, cast
+
+from pgtricks.mergesort import MergeSort
 
 COPY_RE = re.compile(r'COPY .*? \(.*?\) FROM stdin;\n$')
 
@@ -50,7 +50,7 @@ class Matcher(object):
         return self._match.group(group1)
 
 
-def split_sql_file(sql_filepath: str) -> None:
+def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
 
     directory = os.path.dirname(sql_filepath)
 
@@ -66,7 +66,7 @@ def split_sql_file(sql_filepath: str) -> None:
             output.close()
         return open(os.path.join(directory, filename), 'w')
 
-    copy_lines: Optional[List[str]] = None
+    copy_lines: Optional[MergeSort] = None
     counter = 0
     output = new_output('0000_prologue.sql')
     matcher = Matcher()
@@ -87,7 +87,9 @@ def split_sql_file(sql_filepath: str) -> None:
                             schema=matcher.group('schema'),
                             table=matcher.group('table')))
                 elif COPY_RE.match(line):
-                    copy_lines = []
+                    copy_lines = MergeSort(
+                        key=functools.cmp_to_key(linecomp), max_memory=max_memory
+                    )
                 elif SEQUENCE_SET_RE.match(line):
                     pass
                 elif 1 <= counter < 9999:
@@ -96,9 +98,10 @@ def split_sql_file(sql_filepath: str) -> None:
                 buf.append(line)
                 flush()
         else:
-            if line == '\\.\n':
-                copy_lines.sort(key=functools.cmp_to_key(linecomp))
-                buf.extend(copy_lines)
+            if line == "\\.\n":
+                for copy_line in copy_lines:
+                    buf.append(copy_line)
+                    flush()
                 buf.append(line)
                 flush()
                 copy_lines = None
