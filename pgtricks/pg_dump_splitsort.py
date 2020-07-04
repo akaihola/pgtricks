@@ -5,7 +5,7 @@ import io
 import os
 import re
 import sys
-from typing import IO, List, Match, Optional, Pattern, Tuple, Union, cast
+from typing import IO, List, Match, Optional, Pattern, Tuple, Union, cast, Iterable
 
 from pgtricks.mergesort import MergeSort
 
@@ -65,10 +65,10 @@ def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
         output.writelines(buf)
         buf[:] = []
 
-    def writeline(line_: str) -> None:
+    def writelines(lines: Iterable[str]) -> None:
         if buf:
             flush()
-        output.write(line_)
+        output.writelines(lines)
 
     def new_output(filename: str) -> IO[str]:
         if output:
@@ -85,7 +85,7 @@ def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
             if line in ('\n', '--\n'):
                 buf.append(line)
             elif line.startswith('SET search_path = '):
-                writeline(line)
+                writelines([line])
             else:
                 if matcher.match(DATA_COMMENT_RE, line):
                     counter += 1
@@ -103,12 +103,11 @@ def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
                 elif 1 <= counter < 9999:
                     counter = 9999
                     output = new_output('%04d_epilogue.sql' % counter)
-                writeline(line)
+                writelines([line])
         else:
             if line == "\\.\n":
-                for copy_line in copy_lines:
-                    writeline(copy_line)
-                writeline(line)
+                writelines(copy_lines)
+                writelines(line)
                 copy_lines = None
             else:
                 copy_lines.append(line)
