@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
-from __future__ import print_function, unicode_literals
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from glob import glob
 import os
 from subprocess import CalledProcessError, check_output
 
+from typing_extensions import Protocol
+
 from pgtricks.pg_dump_splitsort import split_sql_file
 
 
-def parse_arguments():
+def parse_arguments() -> Namespace:
     parser = ArgumentParser()
     parser.add_argument('database')
     parser.add_argument('remote', nargs='?')
@@ -17,20 +18,24 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def dump_database(database, output_file):
+def dump_database(database: str, output_file: str) -> None:
     output_dir = os.path.dirname(output_file)
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
     check_output(['pg_dump', '-O', '-f', output_file, database])
 
 
-def make_git(directory):
-    def git(*args):
+class GitCallable(Protocol):
+    def __call__(self, *args: str) -> str: ...
+
+
+def make_git(directory: str) -> GitCallable:
+    def git(*args: str) -> str:
         return check_output(('git',) + args, cwd=directory).decode('utf-8')
     return git
 
 
-def commit_database(directory, remote):
+def commit_database(directory: str, remote: str) -> None:
     try:
         git = make_git(directory)
         if not os.path.isdir(os.path.join(directory, '.git')):
@@ -54,7 +59,7 @@ def commit_database(directory, remote):
         raise
 
 
-def main():
+def main() -> None:
     opts = parse_arguments()
     output_file = os.path.join(opts.output_dir,
                                '{}.sql'.format(opts.database))
