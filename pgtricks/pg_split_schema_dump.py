@@ -16,6 +16,8 @@ Usage::
 
 import os
 import re
+from typing import List
+
 import sys
 import warnings
 
@@ -41,7 +43,7 @@ IDENTIFY_RE = re.compile(
 SEARCH_PATH_RE = re.compile(r'SET search_path = [^\n;]+;')
 
 
-def split_sql_file(sqlpath, target_directory):
+def split_sql_file(sqlpath: str, target_directory: str) -> None:
     if not os.path.isdir(target_directory):
         os.mkdir(target_directory)
 
@@ -77,7 +79,7 @@ def split_sql_file(sqlpath, target_directory):
             search_path = search_path_match.group()
 
 
-def main(args=None):
+def main(args: List[str] = None) -> None:
     sqlpath, target_directory = sys.argv[1:] if args is None else args
     split_sql_file(sqlpath, target_directory)
 
