@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
 import functools
-import io
 import os
 import re
-from typing import Tuple, Union, cast, Pattern, Match, Optional, List, IO, Any
-
 import sys
+from typing import IO, List, Match, Optional, Pattern, Tuple, Union, cast
 
 COPY_RE = re.compile(r'COPY .*? \(.*?\) FROM stdin;\n$')
 
