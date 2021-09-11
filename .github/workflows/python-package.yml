@@ -35,7 +35,14 @@ jobs:
         pytest
     - name: Check formatting and linting with Darker
       run: |
-        darker --diff --check --revision master... --isort --lint pylint --lint flake8 .
+        darker \
+          --diff \
+          --check \
+          --revision=origin/master... \
+          --isort \
+          --lint=pylint \
+          --lint=flake8 \
+          .
     - name: Do static type checking with Mypy
       run: |
         mypy .
