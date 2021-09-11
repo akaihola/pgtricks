@@ -1,3 +1,4 @@
+import os
 import warnings
 from textwrap import dedent
 
@@ -136,8 +137,8 @@ def test_split_sql_file_unrecognized_content(tmpdir):
     assert len(caught_warnings) == 1
     cw = str(caught_warnings[0].message).replace(str(tmpdir), '')
     assert cw == dedent(
-        '''\
-        Can't identify the following SQL chunk in /test.sql:
+        f'''\
+        Can't identify the following SQL chunk in {os.sep}test.sql:
         =============================================================================
 
 
