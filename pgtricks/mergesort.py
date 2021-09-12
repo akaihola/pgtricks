@@ -5,14 +5,20 @@ from __future__ import annotations
 import sys
 from heapq import merge
 from tempfile import TemporaryFile
-from typing import IO, Iterable, Iterator, cast
+from typing import IO, Any, Callable, Iterable, Iterator, cast
 
 
 class MergeSort(Iterable[str]):
     """Merge sort implementation to handle large files by sorting them in partitions."""
 
-    def __init__(self, directory: str = ".", max_memory: int = 190) -> None:
+    def __init__(
+        self,
+        key: Callable[[str], Any] = str,
+        directory: str = ".",
+        max_memory: int = 190,
+    ) -> None:
         """Initialize the merge sort object."""
+        self._key = key
         self._directory = directory
         self._max_memory = max_memory
         self._partitions: list[IO[str]] = []
@@ -36,7 +42,7 @@ class MergeSort(Iterable[str]):
     def _flush(self) -> None:
         if self._buffer:
             self._partitions.append(TemporaryFile(mode="w+", dir=self._directory))
-            self._partitions[-1].writelines(sorted(self._buffer))
+            self._partitions[-1].writelines(sorted(self._buffer, key=self._key))
         self._buffer = []
         self._memory_counter = sys.getsizeof(self._buffer)
 
@@ -49,7 +55,7 @@ class MergeSort(Iterable[str]):
                 self._flush()
                 for partition in self._partitions:
                     partition.seek(0)
-                self._iterating = merge(*self._partitions)
+                self._iterating = merge(*self._partitions, key=self._key)
             else:
                 # All lines fit in memory. Iterate the list of lines directly.
                 self._iterating = iter(sorted(self._buffer))

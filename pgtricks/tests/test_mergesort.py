@@ -81,3 +81,12 @@ def test_mergesort_iterate_memory(tmpdir):
     assert next(m) == "9\n"
     with pytest.raises(StopIteration):
         next(m)
+
+
+def test_mergesort_key(tmpdir):
+    """Test sorting lines based on a key function."""
+    m = MergeSort(directory=tmpdir, key=lambda line: -int(line[0]))
+    for value in [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 8, 4]:
+        m.append(f"{value}\n")
+    result = "".join(value[0] for value in m)
+    assert result == "986554433211"
