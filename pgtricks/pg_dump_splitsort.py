@@ -1,15 +1,20 @@
 #!/usr/bin/env python
 
+from __future__ import annotations
+
 import functools
 import os
 import re
 import sys
-from typing import IO, List, Match, Optional, Pattern, Tuple, Union, cast
+from typing import IO, Match, Pattern, cast
+
+from pgtricks.mergesort import MergeSort
 
 COPY_RE = re.compile(r'COPY .*? \(.*?\) FROM stdin;\n$')
 
 
-def try_float(s1: str, s2: str) -> Union[Tuple[str, str], Tuple[float, float]]:
+def try_float(s1: str, s2: str) -> tuple[str, str] | tuple[float, float]:
+    """Convert two strings to floats. Return original ones on conversion error."""
     if not s1 or not s2 or s1[0] not in '0123456789.-' or s2[0] not in '0123456789.-':
         # optimization
         return s1, s2
@@ -22,7 +27,7 @@ def try_float(s1: str, s2: str) -> Union[Tuple[str, str], Tuple[float, float]]:
 def linecomp(l1: str, l2: str) -> int:
     p1 = l1.split('\t', 1)
     p2 = l2.split('\t', 1)
-    v1, v2 = cast(Tuple[float, float], try_float(p1[0], p2[0]))
+    v1, v2 = cast(tuple[float, float], try_float(p1[0], p2[0]))
     result = (v1 > v2) - (v1 < v2)
     # modifying a line to see whether Darker works:
     if not result and len(p1) == len(p2) == 2:
@@ -37,9 +42,10 @@ SEQUENCE_SET_RE = re.compile(r'-- Name: .+; Type: SEQUENCE SET; Schema: |'
 
 class Matcher(object):
     def __init__(self) -> None:
-        self._match: Optional[Match[str]] = None
+        self._match: Match[str] | None = None
 
-    def match(self, pattern: Pattern[str], data: str) -> Optional[Match[str]]:
+    def match(self, pattern: Pattern[str], data: str) -> Match[str] | None:
+        """Match the regular expression pattern against the data."""
         self._match = pattern.match(data)
         return self._match
 
@@ -49,12 +55,15 @@ class Matcher(object):
         return self._match.group(group1)
 
 
-def split_sql_file(sql_filepath: str) -> None:
-
+def split_sql_file(  # noqa: PLR0912, C901  many branches, too complex
+    sql_filepath: str,
+    max_memory: int = 10**8,
+) -> None:
+    """Split a SQL file so that each COPY statement is in its own file."""
     directory = os.path.dirname(sql_filepath)
 
-    output: Optional[IO[str]] = None
-    buf: List[str] = []
+    output: IO[str] | None = None
+    buf: list[str] = []
 
     def flush() -> None:
         cast(IO[str], output).writelines(buf)
@@ -65,7 +74,7 @@ def split_sql_file(sql_filepath: str) -> None:
             output.close()
         return open(os.path.join(directory, filename), 'w')
 
-    copy_lines: Optional[List[str]] = None
+    copy_lines: MergeSort | None = None
     counter = 0
     output = new_output('0000_prologue.sql')
     matcher = Matcher()
@@ -86,7 +95,10 @@ def split_sql_file(sql_filepath: str) -> None:
                             schema=matcher.group('schema'),
                             table=matcher.group('table')))
                 elif COPY_RE.match(line):
-                    copy_lines = []
+                    copy_lines = MergeSort(
+                        key=functools.cmp_to_key(linecomp),
+                        max_memory=max_memory,
+                    )
                 elif SEQUENCE_SET_RE.match(line):
                     pass
                 elif 1 <= counter < 9999:
@@ -95,9 +107,10 @@ def split_sql_file(sql_filepath: str) -> None:
                 buf.append(line)
                 flush()
         else:
-            if line == '\\.\n':
-                copy_lines.sort(key=functools.cmp_to_key(linecomp))
-                buf.extend(copy_lines)
+            if line == "\\.\n":
+                for copy_line in copy_lines:
+                    buf.append(copy_line)
+                    flush()
                 buf.append(line)
                 flush()
                 copy_lines = None
