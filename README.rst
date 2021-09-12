@@ -2,21 +2,40 @@
  pgtricks
 ==========
 
-|travis-badge|_ |license-badge|_ |pypi-badge|_ |downloads-badge|_
+|license-badge| |pypi-badge| |downloads-badge| |black-badge| |changelog-badge|
 
-.. |travis-badge| image:: https://travis-ci.com/akaihola/pgtricks.svg?branch=master
-.. _travis-badge: https://travis-ci.com/akaihola/pgtricks
 .. |license-badge| image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
-.. _license-badge: https://github.com/akaihola/pgtricks/blob/master/LICENSE
+   :alt: BSD 3 Clause license
+   :target: https://github.com/akaihola/pgtricks/blob/master/LICENSE
 .. |pypi-badge| image:: https://img.shields.io/pypi/v/pgtricks
-.. _pypi-badge: https://pypi.org/project/pgtricks/
-.. |downloads-badge| image:: https://pepy.tech/badge/pgtricks
-.. _downloads-badge: https://pepy.tech/project/pgtricks
+   :alt: Latest release on PyPI
+   :target: https://pypi.org/project/pgtricks/
+.. |downloads-badge| image::  https://pepy.tech/badge/pgtricks
+   :alt: Number of downloads
+   :target: https://pepy.tech/project/pgtricks
+.. |black-badge| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :alt: Source code formatted using Black
+   :target: https://github.com/psf/black
+.. |changelog-badge| image:: https://img.shields.io/badge/-change%20log-purple
+   :alt: Change log
+   :target: https://github.com/akaihola/pgtricks/blob/master/CHANGES.rst
 .. |next-milestone| image:: https://img.shields.io/github/milestones/progress/akaihola/pgtricks/1?color=red&label=release%201.0.1
    :alt: Next milestone
    :target: https://github.com/akaihola/pgtricks/milestone/1
 
 This package contains two tools for backing up PostgreSQL database dumps.
+
+
++------------------------------------------------+--------------------------------+
+| |you-can-help|                                 | |support|                      |
++================================================+================================+
+| We're asking the community kindly for help to  | We have a                      |
+| review pull requests for |next-milestone|_ .   | `community support channel`_   |
+| If you have a moment to spare, please take a   | on GitHub Discussions. Welcome |
+| look at one of them and shoot us a comment!    | to ask for help and advice!    |
++------------------------------------------------+--------------------------------+
+
+.. _community support channel: https://github.com/akaihola/pgtricks/discussions
 
 
 Installing
