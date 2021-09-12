@@ -1,3 +1,6 @@
+"""Tests for :mod:`pgtricks.pg_split_schema_dump`"""
+
+import os
 import warnings
 from textwrap import dedent
 
@@ -134,10 +137,10 @@ def test_split_sql_file_unrecognized_content(tmpdir):
         'public.table2.TABLE',
     }
     assert len(caught_warnings) == 1
-    cw = str(caught_warnings[0].message).replace(str(tmpdir), '')
-    assert cw == dedent(
-        '''\
-        Can't identify the following SQL chunk in /test.sql:
+    caught_warnings_text = str(caught_warnings[0].message).replace(str(tmpdir), "")
+    assert caught_warnings_text == dedent(
+        f"""\
+        Can't identify the following SQL chunk in {os.sep}test.sql:
         =============================================================================
 
 
@@ -146,5 +149,5 @@ def test_split_sql_file_unrecognized_content(tmpdir):
         --
 
         (information for the unidentified content goes here)
-        ============================================================================='''
+        ============================================================================="""
     )
