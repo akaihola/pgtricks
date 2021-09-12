@@ -2,8 +2,11 @@
  pgtricks
 ==========
 
-|license-badge| |pypi-badge| |downloads-badge| |black-badge| |changelog-badge|
+|build-badge| |license-badge| |pypi-badge| |downloads-badge| |black-badge| |changelog-badge|
 
+.. |build-badge| image:: https://github.com/akaihola/pgtricks/actions/workflows/python-package.yml/badge.svg
+   :alt: master branch build status
+   :target: https://github.com/akaihola/pgtricks/actions/workflows/python-package.yml?query=branch%3Amaster
 .. |license-badge| image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
    :alt: BSD 3 Clause license
    :target: https://github.com/akaihola/pgtricks/blob/master/LICENSE
