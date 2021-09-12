@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
 import functools
+import io
 import os
 import re
 import sys
-from typing import IO, List, Match, Optional, Pattern, Tuple, Union, cast
+from typing import IO, Iterable, List, Match, Optional, Pattern, Tuple, Union, cast
+
+from pgtricks.mergesort import MergeSort
 
 COPY_RE = re.compile(r'COPY .*? \(.*?\) FROM stdin;\n$')
 
@@ -48,34 +51,41 @@ class Matcher(object):
         return self._match.group(group1)
 
 
-def split_sql_file(sql_filepath: str) -> None:
+def split_sql_file(sql_filepath: str, max_memory: int = 10 ** 8) -> None:
 
     directory = os.path.dirname(sql_filepath)
 
-    output: Optional[IO[str]] = None
+    # `output` needs to be instantiated before the inner functions are defined.
+    # Assign it a dummy string I/O object so type checking is happy.
+    # This will be replaced with the prologue SQL file object.
+    output: IO[str] = io.StringIO()
     buf: List[str] = []
 
     def flush() -> None:
-        cast(IO[str], output).writelines(buf)
+        output.writelines(buf)
         buf[:] = []
+
+    def writelines(lines: Iterable[str]) -> None:
+        if buf:
+            flush()
+        output.writelines(lines)
 
     def new_output(filename: str) -> IO[str]:
         if output:
             output.close()
         return open(os.path.join(directory, filename), 'w')
 
-    copy_lines: Optional[List[str]] = None
+    sorted_data_lines: Optional[MergeSort] = None
     counter = 0
     output = new_output('0000_prologue.sql')
     matcher = Matcher()
 
     for line in open(sql_filepath):
-        if copy_lines is None:
+        if sorted_data_lines is None:
             if line in ('\n', '--\n'):
                 buf.append(line)
             elif line.startswith('SET search_path = '):
-                flush()
-                buf.append(line)
+                writelines([line])
             else:
                 if matcher.match(DATA_COMMENT_RE, line):
                     counter += 1
@@ -85,23 +95,22 @@ def split_sql_file(sql_filepath: str) -> None:
                             schema=matcher.group('schema'),
                             table=matcher.group('table')))
                 elif COPY_RE.match(line):
-                    copy_lines = []
+                    sorted_data_lines = MergeSort(
+                        key=functools.cmp_to_key(linecomp), max_memory=max_memory
+                    )
                 elif SEQUENCE_SET_RE.match(line):
                     pass
                 elif 1 <= counter < 9999:
                     counter = 9999
                     output = new_output('%04d_epilogue.sql' % counter)
-                buf.append(line)
-                flush()
+                writelines([line])
         else:
-            if line == '\\.\n':
-                copy_lines.sort(key=functools.cmp_to_key(linecomp))
-                buf.extend(copy_lines)
-                buf.append(line)
-                flush()
-                copy_lines = None
+            if line == "\\.\n":
+                writelines(sorted_data_lines)
+                writelines(line)
+                sorted_data_lines = None
             else:
-                copy_lines.append(line)
+                sorted_data_lines.append(line)
     flush()
 
 
