@@ -28,21 +28,21 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: |
+      run: >
         pip install -e '.[test]'
     - name: Test with pytest
-      run: |
+      run: >
         pytest
     - name: Check formatting and linting with Darker
-      run: |
-        darker \
-          --diff \
-          --check \
-          --revision=origin/master... \
-          --isort \
-          --lint=pylint \
-          --lint=flake8 \
-          .
+      run: >
+        darker
+        --diff
+        --check
+        --revision=origin/master...
+        --isort
+        --lint=pylint
+        --lint=flake8
+        .
     - name: Do static type checking with Mypy
-      run: |
+      run: >
         mypy .
