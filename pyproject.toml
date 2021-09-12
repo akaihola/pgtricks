@@ -21,7 +21,9 @@ ignore = [
     "ANN201",  # Missing return type annotation for public function
     #"ANN204",  # Missing return type annotation for special method `__init__`
     #"C408",  # Unnecessary `dict` call (rewrite as a literal)
+    "PLR2004",  # Magic value used in comparison
     "S101",  # Use of `assert` detected
+    "SLF001",  # Private member accessed
 ]
 
 [tool.ruff.lint.isort]
