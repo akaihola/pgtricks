@@ -243,3 +243,12 @@ Contributions of any kind are welcome!
 .. _README.rst: https://github.com/akaihola/pgtricks/blob/master/README.rst
 .. _emoji key: https://allcontributors.org/docs/en/emoji-key
 .. _all-contributors: https://allcontributors.org
+
+
+GitHub stars trend
+==================
+
+|stargazers|_
+
+.. |stargazers| image:: https://starchart.cc/akaihola/pgtricks.svg
+.. _stargazers: https://starchart.cc/akaihola/pgtricks
