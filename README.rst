@@ -2,10 +2,11 @@
  pgtricks
 ==========
 
-|travis-badge|_ |license-badge|_ |pypi-badge|_ |downloads-badge|_
+|build-badge|_ |license-badge|_ |pypi-badge|_ |downloads-badge|_
 
-.. |travis-badge| image:: https://travis-ci.com/akaihola/pgtricks.svg?branch=master
-.. _travis-badge: https://travis-ci.com/akaihola/pgtricks
+.. |build-badge| image:: https://github.com/akaihola/pgtricks/actions/workflows/python-package.yml/badge.svg
+   :alt: master branch build status
+.. _build-badge: https://github.com/akaihola/pgtricks/actions/workflows/python-package.yml?query=branch%3Amaster
 .. |license-badge| image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
 .. _license-badge: https://github.com/akaihola/pgtricks/blob/master/LICENSE
 .. |pypi-badge| image:: https://img.shields.io/pypi/v/pgtricks
