@@ -7,7 +7,7 @@ import io
 import os
 import re
 import sys
-from typing import IO, Match, Pattern, cast
+from typing import IO, Iterable, Match, Pattern, cast
 
 from pgtricks.mergesort import MergeSort
 
@@ -56,7 +56,7 @@ class Matcher(object):
         return self._match.group(group1)
 
 
-def split_sql_file(  # noqa: PLR0912, C901  many branches, too complex
+def split_sql_file(  # noqa: C901  too complex
     sql_filepath: str,
     max_memory: int = 10**8,
 ) -> None:
@@ -73,10 +73,10 @@ def split_sql_file(  # noqa: PLR0912, C901  many branches, too complex
         output.writelines(buf)
         buf[:] = []
 
-    def writeline(line_: str) -> None:
+    def writelines(lines: Iterable[str]) -> None:
         if buf:
             flush()
-        output.write(line_)
+        output.writelines(lines)
 
     def new_output(filename: str) -> IO[str]:
         if output:
@@ -93,7 +93,7 @@ def split_sql_file(  # noqa: PLR0912, C901  many branches, too complex
             if line in ('\n', '--\n'):
                 buf.append(line)
             elif line.startswith('SET search_path = '):
-                writeline(line)
+                writelines([line])
             else:
                 if matcher.match(DATA_COMMENT_RE, line):
                     counter += 1
@@ -112,12 +112,11 @@ def split_sql_file(  # noqa: PLR0912, C901  many branches, too complex
                 elif 1 <= counter < 9999:
                     counter = 9999
                     output = new_output('%04d_epilogue.sql' % counter)
-                writeline(line)
+                writelines([line])
         else:
             if line == "\\.\n":
-                for copy_line in copy_lines:
-                    writeline(copy_line)
-                writeline(line)
+                writelines(copy_lines)
+                writelines(line)
                 copy_lines = None
             else:
                 copy_lines.append(line)
