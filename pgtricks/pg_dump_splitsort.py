@@ -83,13 +83,13 @@ def split_sql_file(  # noqa: C901  too complex
             output.close()
         return open(os.path.join(directory, filename), 'w')
 
-    copy_lines: MergeSort | None = None
+    sorted_data_lines: MergeSort | None = None
     counter = 0
     output = new_output('0000_prologue.sql')
     matcher = Matcher()
 
     for line in open(sql_filepath):
-        if copy_lines is None:
+        if sorted_data_lines is None:
             if line in ('\n', '--\n'):
                 buf.append(line)
             elif line.startswith('SET search_path = '):
@@ -103,7 +103,7 @@ def split_sql_file(  # noqa: C901  too complex
                             schema=matcher.group('schema'),
                             table=matcher.group('table')))
                 elif COPY_RE.match(line):
-                    copy_lines = MergeSort(
+                    sorted_data_lines = MergeSort(
                         key=functools.cmp_to_key(linecomp),
                         max_memory=max_memory,
                     )
@@ -115,11 +115,11 @@ def split_sql_file(  # noqa: C901  too complex
                 writelines([line])
         else:
             if line == "\\.\n":
-                writelines(copy_lines)
+                writelines(sorted_data_lines)
                 writelines(line)
-                copy_lines = None
+                sorted_data_lines = None
             else:
-                copy_lines.append(line)
+                sorted_data_lines.append(line)
     flush()
 
 
