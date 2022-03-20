@@ -33,16 +33,21 @@ jobs:
     - name: Test with pytest
       run: >
         pytest
-    - name: Check formatting and linting with Darker
-      run: >
-        darker
-        --diff
-        --check
-        --revision=origin/master...
-        --isort
-        --lint=pylint
-        --lint=flake8
-        .
     - name: Do static type checking with Mypy
       run: >
         mypy .
+  darker:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - uses: akaihola/darker@v2.1.1
+      with:
+        options: --verbose --check --diff --isort --color
+        revision: origin/master...
+        lint: flake8 == 4.0.0 , pylint==2.13.2
