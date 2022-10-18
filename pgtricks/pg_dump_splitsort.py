@@ -6,7 +6,7 @@ import re
 import sys
 from typing import IO, List, Match, Optional, Pattern, Tuple, Union, cast
 
-COPY_RE = re.compile(r'COPY .*? \(.*?\) FROM stdin;\n$')
+COPY_RE = re.compile(r'COPY .*? FROM stdin;\n$')
 
 
 def try_float(s1: str, s2: str) -> Union[Tuple[str, str], Tuple[float, float]]:
