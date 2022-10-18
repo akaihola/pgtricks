@@ -11,7 +11,7 @@ from typing import IO, Iterable, Match, Pattern, cast
 
 from pgtricks.mergesort import MergeSort
 
-COPY_RE = re.compile(r'COPY .*? \(.*?\) FROM stdin;\n$')
+COPY_RE = re.compile(r'COPY .*? FROM stdin;\n$')
 KIBIBYTE, MEBIBYTE, GIBIBYTE = 2**10, 2**20, 2**30
 MEMORY_UNITS = {"": 1, "k": KIBIBYTE, "m": MEBIBYTE, "g": GIBIBYTE}
 
