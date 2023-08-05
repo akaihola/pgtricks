@@ -3,3 +3,4 @@
 ==============================
 
 - Antti Kaihola (@akaihola)
+- Connor Sherson
