@@ -64,7 +64,7 @@ def split_sql_file(sqlpath: str, target_directory: str) -> None:
             )
             print(part)
             continue
-        name = match.group(1).replace(" ", "_")
+        name = match.group(1).replace(" ", "_").replace('"', '')
         type_ = match.group(2).replace(" ", "_")
         schema = match.group(3)
         if schema == "-":
