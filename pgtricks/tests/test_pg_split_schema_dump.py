@@ -151,3 +151,38 @@ def test_split_sql_file_unrecognized_content(tmpdir):
         (information for the unidentified content goes here)
         ============================================================================="""
     )
+
+
+def test_split_sql_file_with_quotes_in_name(tmpdir):
+    target_directory = tmpdir / "target"
+    sqlpath = tmpdir / "test.sql"
+    sqlpath.write(
+        dedent(
+            """
+
+            --
+            -- Name: "user"; Type: TABLE; Schema: public; Owner:
+            --
+
+            (information for user table goes here)
+            """
+        )
+    )
+
+    split_sql_file(str(sqlpath), str(target_directory))
+
+    assert {path.basename for path in target_directory.listdir()} == {
+        "public.user.TABLE"
+    }
+    assert (target_directory / "public.user.TABLE").readlines(cr=False) == [
+        "SET search_path = public;",
+        "",
+        "",
+        "",
+        "--",
+        '-- Name: "user"; Type: TABLE; Schema: public; Owner:',
+        "--",
+        "",
+        "(information for user table goes here)",
+        "",
+    ]
