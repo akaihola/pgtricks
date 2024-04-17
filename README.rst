@@ -12,6 +12,9 @@
 .. _pypi-badge: https://pypi.org/project/pgtricks/
 .. |downloads-badge| image:: https://pepy.tech/badge/pgtricks
 .. _downloads-badge: https://pepy.tech/project/pgtricks
+.. |next-milestone| image:: https://img.shields.io/github/milestones/progress/akaihola/pgtricks/1?color=red&label=release%201.0.1
+   :alt: Next milestone
+   :target: https://github.com/akaihola/pgtricks/milestone/1
 
 This package contains two tools for backing up PostgreSQL database dumps.
 
