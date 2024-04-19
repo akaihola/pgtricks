@@ -28,7 +28,8 @@ def try_float(s1: str, s2: str) -> tuple[str, str] | tuple[float, float]:
 def linecomp(l1: str, l2: str) -> int:
     p1 = l1.split('\t', 1)
     p2 = l2.split('\t', 1)
-    v1, v2 = cast(tuple[float, float], try_float(p1[0], p2[0]))
+    # TODO: unquote cast after support for Python 3.8 is dropped
+    v1, v2 = cast("tuple[float, float]", try_float(p1[0], p2[0]))
     result = (v1 > v2) - (v1 < v2)
     # modifying a line to see whether Darker works:
     if not result and len(p1) == len(p2) == 2:
