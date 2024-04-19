@@ -21,9 +21,10 @@ def test_mergesort_append(tmpdir):
     m.append(f"3{LF}")
     assert m._buffer == [f"3{LF}"]
     assert len(m._partitions) == 1
-    assert m._partitions[0].tell() == len(f"1{LF}2{LF}")
+    pos = m._partitions[0].tell()
     m._partitions[0].seek(0)
     assert m._partitions[0].read() == f"1{LF}2{LF}"
+    assert pos == len(f"1{LF}2{LF}")
 
 
 def test_mergesort_flush(tmpdir):
@@ -36,9 +37,10 @@ def test_mergesort_flush(tmpdir):
     assert m._partitions[0].tell() == len(f"1{LF}2{LF}")
     m._partitions[0].seek(0)
     assert m._partitions[0].read() == f"1{LF}2{LF}"
-    assert m._partitions[1].tell() == len(f"3{LF}")
+    pos = m._partitions[1].tell()
     m._partitions[1].seek(0)
     assert m._partitions[1].read() == f"3{LF}"
+    assert pos == len(f"3{LF}")
 
 
 def test_mergesort_iterate_disk(tmpdir):
