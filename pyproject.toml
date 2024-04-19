@@ -1,3 +1,29 @@
 [build-system]
 # Minimum requirements for the build system to execute.
 requires = ["setuptools", "wheel"]  # PEP 508 specifications.
+
+[tool.ruff]
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    #"A002",  # builtin-argument-shadowing
+    "ANN101",  # Missing type annotation for `self` in method
+    "D203",  # One blank line required before class docstring
+    "D213",  # Multi-line docstring summary should start at the second line
+    #"D400",  # First line should end with a period (duplicates D415)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"pgtricks/tests/*.py" = [
+    "ANN001",  # Missing type annotation for function argument
+    "ANN201",  # Missing return type annotation for public function
+    #"ANN204",  # Missing return type annotation for special method `__init__`
+    #"C408",  # Unnecessary `dict` call (rewrite as a literal)
+    "S101",  # Use of `assert` detected
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pgtricks"]
+known-third-party = ["pytest"]
