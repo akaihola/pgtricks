@@ -24,6 +24,7 @@ def linecomp(l1: str, l2: str) -> int:
     p2 = l2.split('\t', 1)
     v1, v2 = cast(Tuple[float, float], try_float(p1[0], p2[0]))
     result = (v1 > v2) - (v1 < v2)
+    # modifying a line to see whether Darker works:
     if not result and len(p1) == len(p2) == 2:
         return linecomp(p1[1], p2[1])
     return result
