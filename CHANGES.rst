@@ -12,7 +12,7 @@ Removed
 
 Fixed
 -----
-
+- Empty tables are now handled correctly.
 - Very large tables are now sorted without crashing. This is done by merge sorting
   in temporary files.
 
@@ -37,7 +37,7 @@ Added
 Added
 -----
 
-Document ``pg_incremental_backup.py`` in the README file
+- Document ``pg_incremental_backup.py`` in the README file
 
 
 0.9_ / 2015-03-10
