@@ -13,6 +13,9 @@ Removed
 Fixed
 -----
 
+- Very large tables are now sorted without crashing. This is done by merge sorting
+  in temporary files.
+
 
 1.0.0_ / 2021-09-11
 ====================
