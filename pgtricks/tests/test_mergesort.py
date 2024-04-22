@@ -1,4 +1,5 @@
 """Tests for the `pgtricks.mergesort` module."""
+
 import functools
 from types import GeneratorType
 from typing import Iterable, cast
@@ -26,7 +27,7 @@ def test_mergesort_append(tmpdir, lf):
     assert len(m._partitions) == 1
     pos = m._partitions[0].tell()
     m._partitions[0].seek(0)
-    assert m._partitions[0].read() == f"1{lf}2{lf}".encode("UTF-8")
+    assert m._partitions[0].read() == f"1{lf}2{lf}".encode()
     assert pos == len(f"1{lf}2{lf}")
 
 
@@ -40,10 +41,10 @@ def test_mergesort_flush(tmpdir, lf):
     assert len(m._partitions) == 2
     assert m._partitions[0].tell() == len(f"1{lf}2{lf}")
     m._partitions[0].seek(0)
-    assert m._partitions[0].read() == f"1{lf}2{lf}".encode("UTF-8")
+    assert m._partitions[0].read() == f"1{lf}2{lf}".encode()
     pos = m._partitions[1].tell()
     m._partitions[1].seek(0)
-    assert m._partitions[1].read() == f"3{lf}".encode("UTF-8")
+    assert m._partitions[1].read() == f"3{lf}".encode()
     assert pos == len(f"3{lf}")
 
 
@@ -73,7 +74,11 @@ def test_mergesort_iterate_disk(tmpdir, lf):
 @pytest.mark.parametrize("lf", ["\n", "\r\n"])
 def test_mergesort_iterate_memory(tmpdir, lf):
     """Test iterating over the sorted lines when all lines fit in memory."""
-    m = MergeSort(directory=tmpdir, max_memory=1000000, key=functools.cmp_to_key(linecomp))
+    m = MergeSort(
+        directory=tmpdir,
+        max_memory=1000000,
+        key=functools.cmp_to_key(linecomp),
+    )
     for value in [3, 1, 4, 1, 5, 9, 2, 10, 6, 5, 3, 8, 4]:
         m.append(f"{value}{lf}")
     assert next(m) == f"1{lf}"
