@@ -59,7 +59,7 @@ class Matcher(object):
 
 def split_sql_file(  # noqa: C901  too complex
     sql_filepath: str,
-    max_memory: int = 10**8,
+    max_memory: int = 100 * 2 ** 20,
 ) -> None:
     """Split a SQL file so that each COPY statement is in its own file."""
     directory = os.path.dirname(sql_filepath)
@@ -125,7 +125,10 @@ def split_sql_file(  # noqa: C901  too complex
 
 
 def main() -> None:
-    split_sql_file(sys.argv[1])
+    max_memory = 100 * 2 ** 20
+    if len(sys.argv) > 2:
+        max_memory = int(sys.argv[2]) * 2 ** 20
+    split_sql_file(sys.argv[1],  max_memory)
 
 
 if __name__ == '__main__':

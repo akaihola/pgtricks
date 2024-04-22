@@ -1,11 +1,12 @@
 """Tests for the `pgtricks.mergesort` module."""
-
+import functools
 from types import GeneratorType
 from typing import Iterable, cast
 
 import pytest
 
 from pgtricks.mergesort import MergeSort
+from pgtricks.pg_dump_splitsort import linecomp
 
 # This is the biggest amount of memory which can't hold two one-character lines on any
 # platform. On Windows it's slightly smaller than on Unix.
@@ -72,8 +73,8 @@ def test_mergesort_iterate_disk(tmpdir, lf):
 @pytest.mark.parametrize("lf", ["\n", "\r\n"])
 def test_mergesort_iterate_memory(tmpdir, lf):
     """Test iterating over the sorted lines when all lines fit in memory."""
-    m = MergeSort(directory=tmpdir, max_memory=1000000)
-    for value in [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 8, 4]:
+    m = MergeSort(directory=tmpdir, max_memory=1000000, key=functools.cmp_to_key(linecomp))
+    for value in [3, 1, 4, 1, 5, 9, 2, 10, 6, 5, 3, 8, 4]:
         m.append(f"{value}{lf}")
     assert next(m) == f"1{lf}"
     assert not isinstance(m._iterating, GeneratorType)
@@ -89,6 +90,7 @@ def test_mergesort_iterate_memory(tmpdir, lf):
     assert next(m) == f"6{lf}"
     assert next(m) == f"8{lf}"
     assert next(m) == f"9{lf}"
+    assert next(m) == f"10{lf}"
     with pytest.raises(StopIteration):
         next(m)
 

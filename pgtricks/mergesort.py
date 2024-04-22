@@ -25,7 +25,7 @@ class MergeSort(Iterable[str]):
         self._partitions: list[IO[bytes]] = []
         self._iterating: Iterable[str] | None = None
         self._buffer: list[str] = []
-        self._memory_counter = 0
+        self._memory_counter: int = sys.getsizeof(self._buffer)
         self._flush()
 
     def append(self, line: str) -> None:
@@ -68,7 +68,7 @@ class MergeSort(Iterable[str]):
                 )
             else:
                 # All lines fit in memory. Iterate the list of lines directly.
-                self._iterating = iter(sorted(self._buffer))
+                self._iterating = iter(sorted(self._buffer, key=self._key))
         return next(cast(Iterator[str], self._iterating))
 
     def __iter__(self) -> Iterator[str]:
