@@ -1,8 +1,9 @@
 from functools import cmp_to_key
+from textwrap import dedent
 
 import pytest
 
-from pgtricks.pg_dump_splitsort import linecomp, try_float
+from pgtricks.pg_dump_splitsort import linecomp, memory_size, split_sql_file, try_float
 
 
 @pytest.mark.parametrize(
@@ -101,3 +102,111 @@ def test_linecomp_by_sorting():
         [r'\N', r'\N', r'\N'],
         [r'\N', 'foo', '.42'],
     ]
+
+
+PROLOGUE = dedent(
+    """
+
+    --
+    -- Name: table1; Type: TABLE; Schema: public; Owner:
+    --
+
+    (information for table1 goes here)
+    """,
+)
+
+TABLE1_COPY = dedent(
+    r"""
+
+    -- Data for Name: table1; Type: TABLE DATA; Schema: public;
+
+    COPY foo (id) FROM stdin;
+    3
+    1
+    4
+    1
+    5
+    9
+    2
+    6
+    5
+    3
+    8
+    4
+    \.
+    """,
+)
+
+TABLE1_COPY_SORTED = dedent(
+    r"""
+
+    -- Data for Name: table1; Type: TABLE DATA; Schema: public;
+
+    COPY foo (id) FROM stdin;
+    1
+    1
+    2
+    3
+    3
+    4
+    4
+    5
+    5
+    6
+    8
+    9
+    \.
+    """,
+)
+
+EPILOGUE = dedent(
+    """
+    -- epilogue
+    """,
+)
+
+
+def test_split_sql_file(tmpdir):
+    """Test splitting a SQL file with COPY statements."""
+    sql_file = tmpdir / "test.sql"
+    sql_file.write(PROLOGUE + TABLE1_COPY + EPILOGUE)
+
+    split_sql_file(sql_file, max_memory=190)
+
+    split_files = sorted(path.relto(tmpdir) for path in tmpdir.listdir())
+    assert split_files == [
+        "0000_prologue.sql",
+        "0001_public.table1.sql",
+        "9999_epilogue.sql",
+        "test.sql",
+    ]
+    assert (tmpdir / "0000_prologue.sql").read() == PROLOGUE
+    assert (tmpdir / "0001_public.table1.sql").read() == TABLE1_COPY_SORTED
+    assert (tmpdir / "9999_epilogue.sql").read() == EPILOGUE
+
+
+@pytest.mark.parametrize(
+    ("size", "expect"),
+    [
+        ("0", 0),
+        ("1", 1),
+        ("1k", 1024),
+        ("1m", 1024**2),
+        ("1g", 1024**3),
+        ("100_000K", 102400000),
+        ("1.5M", 1536 * 1024),
+        ("1.5G", 1536 * 1024**2),
+        ("1.5", 1),
+        ("1.5 kibibytes", 1536),
+        ("1.5 Megabytes", 1024 * 1536),
+        ("1.5 Gigs", 1024**2 * 1536),
+        ("1.5KB", 1536),
+        (".5MB", 512 * 1024),
+        ("20GB", 20 * 1024**3),
+    ],
+)
+def test_memory_size(size, expect):
+    """Test parsing human-readable memory sizes with `memory_size`."""
+    result = memory_size(size)
+
+    assert result == expect
