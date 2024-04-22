@@ -22,9 +22,9 @@
 .. |changelog-badge| image:: https://img.shields.io/badge/-change%20log-purple
    :alt: Change log
    :target: https://github.com/akaihola/pgtricks/blob/master/CHANGES.rst
-.. |next-milestone| image:: https://img.shields.io/github/milestones/progress/akaihola/pgtricks/1?color=red&label=release%201.0.1
+.. |next-milestone| image:: https://img.shields.io/github/milestones/progress/akaihola/pgtricks/3?color=red&label=release%202.0.0
    :alt: Next milestone
-   :target: https://github.com/akaihola/pgtricks/milestone/1
+   :target: https://github.com/akaihola/pgtricks/milestone/3
 
 This package contains two tools for backing up PostgreSQL database dumps.
 
