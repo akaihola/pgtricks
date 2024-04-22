@@ -3,7 +3,7 @@ from textwrap import dedent
 
 import pytest
 
-from pgtricks.pg_dump_splitsort import linecomp, split_sql_file, try_float
+from pgtricks.pg_dump_splitsort import linecomp, memory_size, split_sql_file, try_float
 
 
 @pytest.mark.parametrize(
@@ -183,3 +183,30 @@ def test_split_sql_file(tmpdir):
     assert (tmpdir / "0000_prologue.sql").read() == PROLOGUE
     assert (tmpdir / "0001_public.table1.sql").read() == TABLE1_COPY_SORTED
     assert (tmpdir / "9999_epilogue.sql").read() == EPILOGUE
+
+
+@pytest.mark.parametrize(
+    ("size", "expect"),
+    [
+        ("0", 0),
+        ("1", 1),
+        ("1k", 1024),
+        ("1m", 1024**2),
+        ("1g", 1024**3),
+        ("100_000K", 102400000),
+        ("1.5M", 1536 * 1024),
+        ("1.5G", 1536 * 1024**2),
+        ("1.5", 1),
+        ("1.5 kibibytes", 1536),
+        ("1.5 Megabytes", 1024 * 1536),
+        ("1.5 Gigs", 1024**2 * 1536),
+        ("1.5KB", 1536),
+        (".5MB", 512 * 1024),
+        ("20GB", 20 * 1024**3),
+    ],
+)
+def test_memory_size(size, expect):
+    """Test parsing human-readable memory sizes with `memory_size`."""
+    result = memory_size(size)
+
+    assert result == expect

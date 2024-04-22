@@ -6,12 +6,14 @@ import functools
 import io
 import os
 import re
-import sys
+from argparse import ArgumentParser
 from typing import IO, Iterable, Match, Pattern, cast
 
 from pgtricks.mergesort import MergeSort
 
 COPY_RE = re.compile(r'COPY .*? \(.*?\) FROM stdin;\n$')
+KIBIBYTE, MEBIBYTE, GIBIBYTE = 2**10, 2**20, 2**30
+MEMORY_UNITS = {"": 1, "k": KIBIBYTE, "m": MEBIBYTE, "g": GIBIBYTE}
 
 
 def try_float(s1: str, s2: str) -> tuple[str, str] | tuple[float, float]:
@@ -59,7 +61,7 @@ class Matcher(object):
 
 def split_sql_file(  # noqa: C901  too complex
     sql_filepath: str,
-    max_memory: int = 100 * 2**20,
+    max_memory: int = 100 * MEBIBYTE,
 ) -> None:
     """Split a SQL file so that each COPY statement is in its own file."""
     directory = os.path.dirname(sql_filepath)
@@ -124,11 +126,34 @@ def split_sql_file(  # noqa: C901  too complex
     flush()
 
 
+def memory_size(size: str) -> int:
+    """Parse a human-readable memory size.
+
+    :param size: The memory size to parse, e.g. "100MB".
+    :return: The memory size in bytes.
+    :raise ValueError: If the memory size is invalid.
+
+    """
+    match = re.match(r"([\d._]+)\s*([kmg]?)b?", size.lower().strip())
+    if not match:
+        message = f"Invalid memory size: {size}"
+        raise ValueError(message)
+    return int(float(match.group(1)) * MEMORY_UNITS[match.group(2)])
+
+
 def main() -> None:
-    max_memory = 100 * 2**20
-    if len(sys.argv) > 2:
-        max_memory = int(sys.argv[2]) * 2**20
-    split_sql_file(sys.argv[1], max_memory)
+    parser = ArgumentParser(description="Split a SQL file into smaller files.")
+    parser.add_argument("sql_filepath", help="The SQL file to split.")
+    parser.add_argument(
+        "-m",
+        "--max-memory",
+        default=100 * MEBIBYTE,
+        type=memory_size,
+        help="Max memory to use, e.g. 50_000, 200000000, 100kb, 100MB (default), 2Gig.",
+    )
+    args = parser.parse_args()
+
+    split_sql_file(args.sql_filepath, args.max_memory)
 
 
 if __name__ == '__main__':
