@@ -5,10 +5,17 @@ These features will be included in the next release:
 
 Added
 -----
-- Builds for Python 3.10, 3.11 and 3.12.
 
-Removed
--------
+Fixed
+-----
+
+
+1.1.0_ - 2024-04-24
+===================
+
+Added
+-----
+- Builds for Python 3.10, 3.11 and 3.12.
 
 Fixed
 -----
@@ -22,7 +29,6 @@ Fixed
 
 Added
 -----
-
 - Type hints
 - Contributors list
 - Install instructions in the README file
@@ -36,7 +42,10 @@ Added
 
 Added
 -----
+<<<<<<< HEAD
 
+=======
+>>>>>>> 70fc10c (Bump to version 1.1.0)
 - Document ``pg_incremental_backup.py`` in the README file
 
 
@@ -45,7 +54,6 @@ Added
 
 Added
 -----
-
 - The ``pg_incremental_backup.py`` script with remote repository URL as an optional
   command line argument
 - The New (3-clause) BSD license
@@ -53,7 +61,8 @@ Added
 - ``pg_dump_splitsort.py`` for sorting and splitting ``pg_dump`` output
 
 
-.. _Unreleased: https://github.com/akaihola/pgtricks/compare/1.0.0...HEAD
+.. _Unreleased: https://github.com/akaihola/pgtricks/compare/1.1.0...HEAD
+.. _1.1.0: https://github.com/akaihola/pgtricks/compare/1.0.0...1.1.0
 .. _1.0.0: https://github.com/akaihola/pgtricks/compare/0.9.1...1.0.0
 .. _0.9.1: https://github.com/akaihola/pgtricks/compare/0.9...0.9.1
 .. _0.9: https://github.com/akaihola/pgtricks/compare/46e4cdb...0.9
