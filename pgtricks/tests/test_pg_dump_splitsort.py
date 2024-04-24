@@ -3,7 +3,34 @@ from textwrap import dedent
 
 import pytest
 
-from pgtricks.pg_dump_splitsort import linecomp, memory_size, split_sql_file, try_float
+from pgtricks.pg_dump_splitsort import (
+    COPY_RE,
+    linecomp,
+    memory_size,
+    split_sql_file,
+    try_float,
+)
+
+
+@pytest.mark.parametrize(
+    ("test_input", "expected"),
+    [
+        ("COPY table_name (column1, column2) FROM stdin;\n", True),
+        ("COPY   table_name   (column1,   column2)   FROM   stdin;\n", True),
+        ("COPY table_name FROM stdin;\n", True),
+        ("COPY   table_name   FROM   stdin;\n", True),
+        ("COPYtable_name FROM stdin;\n", False),  # No space after COPY
+        ("COPY table_name FROMstdin;\n", False),  # No space before stdin
+        ("COPY table_name FROM ;\n", False),  # Missing stdin
+        ("COPY table_name stdin;\n", False),  # Missing FROM
+        ("COPY FROM stdin;\n", False),  # Missing table name
+    ],
+)
+def test_sql_copy_regular_expression(test_input, expected):
+    """Test that `COPY_RE` matches/doesn't match the expected strings."""
+    result = COPY_RE.match(test_input) is not None
+
+    assert result == expected
 
 
 @pytest.mark.parametrize(
