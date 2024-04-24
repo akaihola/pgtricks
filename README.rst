@@ -38,6 +38,10 @@ This package contains two tools for backing up PostgreSQL database dumps.
 | look at one of them and shoot us a comment!    | to ask for help and advice!    |
 +------------------------------------------------+--------------------------------+
 
+.. |you-can-help| image:: https://img.shields.io/badge/-You%20can%20help-green?style=for-the-badge
+   :alt: You can help
+.. |support| image:: https://img.shields.io/badge/-Support-green?style=for-the-badge
+   :alt: Support
 .. _community support channel: https://github.com/akaihola/pgtricks/discussions
 
 
