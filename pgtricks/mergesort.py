@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
-import sys
+import platform
 from heapq import merge
 from tempfile import TemporaryFile
 from typing import IO, Any, Callable, Iterable, Iterator, cast
+
+
+if platform.python_implementation() == "PyPy":
+    getsizeof = len
+else:
+    from sys import getsizeof
 
 
 class MergeSort(Iterable[str]):
@@ -25,7 +31,7 @@ class MergeSort(Iterable[str]):
         self._partitions: list[IO[bytes]] = []
         self._iterating: Iterable[str] | None = None
         self._buffer: list[str] = []
-        self._memory_counter: int = sys.getsizeof(self._buffer)
+        self._memory_counter: int = getsizeof(self._buffer)
         self._flush()
 
     def append(self, line: str) -> None:
@@ -33,10 +39,10 @@ class MergeSort(Iterable[str]):
         if self._iterating:
             message = "Can't append lines after starting to sort"
             raise ValueError(message)
-        self._memory_counter -= sys.getsizeof(self._buffer)
+        self._memory_counter -= getsizeof(self._buffer)
         self._buffer.append(line)
-        self._memory_counter += sys.getsizeof(self._buffer)
-        self._memory_counter += sys.getsizeof(line)
+        self._memory_counter += getsizeof(self._buffer)
+        self._memory_counter += getsizeof(line)
         if self._memory_counter >= self._max_memory:
             self._flush()
 
@@ -48,7 +54,7 @@ class MergeSort(Iterable[str]):
                 line.encode("UTF-8") for line in sorted(self._buffer, key=self._key)
             )
         self._buffer = []
-        self._memory_counter = sys.getsizeof(self._buffer)
+        self._memory_counter = getsizeof(self._buffer)
 
     def __next__(self) -> str:
         """Return the next line in the sorted list of lines."""
