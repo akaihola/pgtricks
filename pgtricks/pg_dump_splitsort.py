@@ -16,24 +16,23 @@ KIBIBYTE, MEBIBYTE, GIBIBYTE = 2**10, 2**20, 2**30
 MEMORY_UNITS = {"": 1, "k": KIBIBYTE, "m": MEBIBYTE, "g": GIBIBYTE}
 
 
-def try_float(s1: str, s2: str) -> tuple[str, str] | tuple[float, float]:
+def try_float(s1: str, s2: str) -> tuple[float, float]:
     """Convert two strings to floats. Return original ones on conversion error."""
     if not s1 or not s2 or s1[0] not in '0123456789.-' or s2[0] not in '0123456789.-':
         # optimization
-        return s1, s2
-    try:
-        return float(s1), float(s2)
-    except ValueError:
-        return s1, s2
+        raise ValueError
+    return float(s1), float(s2)
 
 
 def linecomp(l1: str, l2: str) -> int:
     p1 = l1.split('\t', 1)
     p2 = l2.split('\t', 1)
     # TODO: unquote cast after support for Python 3.8 is dropped
-    v1, v2 = cast("tuple[float, float]", try_float(p1[0], p2[0]))
-    result = (v1 > v2) - (v1 < v2)
-    # modifying a line to see whether Darker works:
+    try:
+        v1, v2 = try_float(p1[0], p2[0])
+        result = (v1 > v2) - (v1 < v2)
+    except ValueError:
+        result = (p1[0] > p2[0]) - (p1[0] < p2[0])
     if not result and len(p1) == len(p2) == 2:
         return linecomp(p1[1], p2[1])
     return result
