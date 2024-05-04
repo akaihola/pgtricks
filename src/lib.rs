@@ -130,8 +130,8 @@ pub fn linecomp(l1: &str, l2: &str) -> Ordering {
                                 if c2 == '.' {
                                     return l1_larger.reverse();  // l2 has, l1 not, so |l1| < |l2|
                                 }
-                                // both l1 and l2 have a non-digit character, and it's not a decimal
-                                // so we shift to non-numeric comparison below
+                                // both l1 and l2 have a non-digit character, and it's not a
+                                // decimal, so we shift to non-numeric comparison below
                             }
                         }
                     } else if !c2.is_ascii_digit() {
