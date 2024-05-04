@@ -1,4 +1,26 @@
 use pyo3::prelude::*;
+use external_sort::{ExternalSorter, ExternallySortable};
+use itertools::Itertools;
+use std::io::{BufRead, BufReader, Read, Write};
+
+// Define a string structure that can be sorted externally
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct TsvLine {
+    the_line: String,
+}
+
+impl TsvLine {
+    fn new(line: &str) -> TsvLine {
+        TsvLine { the_line: line.to_string() }
+    }
+}
+
+impl ExternallySortable for TsvLine {
+    fn get_size(&self) -> u64 {
+        self.the_line.len() as u64
+    }
+}
+
 
 #[pyfunction]
 fn linecomp(l1: &str, l2: &str) -> i8 {
@@ -16,12 +38,78 @@ fn sort_lines(lines: Vec<String>) -> Vec<String> {
     lines
 }
 
+/// Merge sort a range of lines from an input file and write the result to another file.
+///
+/// The function `sort_file_lines` seeks to the given start position in the input file, reads
+/// lines until the end marker is reached, does an external sort of lines using `ExternalSorter`
+/// from the `external_sort` crate and the `tsv_cmp` function below, and writes the sorted lines to
+/// the output file.
+///
+/// # Arguments
+///
+/// * `input` - The input file to read lines from.
+/// * `output` - The output file to write sorted lines to.
+/// * `start` - The start position in the input file.
+/// * `end` - The characters of a line that marks the end of the range.
+///
+/// # Returns
+///
+/// The function returns the number of lines read and written.
+///
+/// # Errors
+///
+/// The function returns an error if the input file cannot be read or the output file cannot be
+/// written.
+///
+/// # Examples
+///
+/// ```no_run
+/// use pgtricks::sort_file_lines;
+///
+/// let input = "input.txt";
+/// let output = "output.txt";
+/// let start = 0;
+/// let end = "END";
+/// let result = sort_file_lines(input, output, start, end);
+/// assert!(result.is_ok());
+/// ```
+///
+#[pyfunction]
+fn sort_file_lines(input: &str, output: &str, start: u64, end: &str) -> PyResult<u64> {
+    let external_sorter = ExternalSorter::new(1000000, None);
+    // Open the input file
+    let mut input_file = std::fs::File::open(input)?;
+    // Seek to the start position
+    input_file.seek(std::io::SeekFrom::Start(start))?;
+    // Wrap the input file in a buffered reader
+    let mut input = BufReader::new(&mut input_file);
+    // Create an iterator which reads lines until the end marker
+    let lines = input
+        .by_ref()
+        .lines()
+        .take_while(|line| line.as_ref().map(|l| l != end).unwrap_or(false))
+        // convert the lines to TsvLine
+        .map(|line| TsvLine::new(&line.unwrap()));
+    // Do the external sort
+    let iter = external_sorter.sort_by(lines, |a, b| tsv_cmp(a.the_line.as_str(), b.the_line.as_str())).unwrap();
+    // Open the output file
+    let output_file = std::fs::File::create(output)?;
+    let mut output = std::io::BufWriter::new(output_file);
+    // Write the sorted lines to the output file
+    for line in iter {
+        writeln!(output, "{}", line.unwrap().the_line)?;
+    }
+    // return the stream position from the counting reader object
+    Ok(input.stream_position().unwrap())
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
-#[pyo3(name="_tsv_sort")]
+#[pyo3(name = "_tsv_sort")]
 fn tsv_sort(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(linecomp, m)?)?;
     m.add_function(wrap_pyfunction!(sort_lines, m)?)?;
+    m.add_function(wrap_pyfunction!(sort_file_lines, m)?)?;
     Ok(())
 }
 
@@ -205,8 +293,10 @@ fn skip_leading_zeros(field_chars: &mut Peekable<Chars>) {
 extern crate rstest;
 
 use std::cmp::Ordering;
+use std::io::Seek;
 use std::iter::Peekable;
 use std::str::Chars;
+use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 mod tests {
