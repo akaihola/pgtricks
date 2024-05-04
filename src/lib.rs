@@ -1,269 +1,240 @@
-fn char_at(s: &str, index: usize) -> char {
-    /*
-    In Rust, strings are not simply arrays of characters, and indexing into a string is
-    not a constant-time operation. This is because Rust strings are UTF-8 encoded, and a
-    single character can span multiple bytes.
-
-    The char_at() function uses the char_indices() method to create an iterator over the
-    characters in the string, and then uses the nth() method to get the character at the
-    desired index. This operation is O(n) in the worst case, as it may need to iterate
-    over the entire string.
-
-    A more idiomatic approach in Rust would be to iterate over the characters of the
-    string once, processing each character as it is encountered. This would avoid the
-    need to repeatedly index into the string, resulting in more efficient and idiomatic
-    Rust code.
-    */
-    s.char_indices()
-        .nth(index)
-        .map(|(_, c)| c)
-        .expect("Index out of bounds")
-}
-
-fn has_digit_at(s: &str, index: usize) -> bool {
-    char_at(s, index).is_ascii_digit()
-}
-
-fn linecomp(l1: &str, l2: &str) -> i32 {
-    let mut p1 = 0;
-    let mut p2 = 0;
-    let mut prev_p1 = std::usize::MAX;
-    let mut prev_p2 = std::usize::MAX;
+fn linecomp(l1: &str, l2: &str) -> Ordering {
+    let mut i1 = l1.char_indices().peekable();
+    let mut i2 = l2.char_indices().peekable();
+    let mut l1_larger = Ordering::Greater;
 
     'next_field: loop {
-        if p1 == prev_p1 && p2 == prev_p2 {
-            panic!("Infinite loop in linecomp");
-        }
-        prev_p1 = p1;
-        prev_p2 = p2;
-
-        if p1 >= l1.len() {
-            return if p2 >= l2.len() { 0 } else { -1 };
-        }
-        if p2 >= l2.len() {
-            return 1;
-        }
-
-        let mut l1_larger = 1;
-        if char_at(l1, p1) == '-' {
-            if char_at(l2, p2) != '-' {
-                // l1 is negative, l2 is positive, so l1 < l2
-                return -1;
+        // handle negative prefixes and end of lines
+        match (i1.peek(), i2.peek()) {
+            (Some((_, _)), None) => return Ordering::Greater,  // end of line for l2, so l1 > l2
+            (None, Some((_, _))) => return Ordering::Less,  // end of line for l1, so l1 < l2
+            (None, None) => return Ordering::Equal,  // end of both lines, so l1 == l2
+            (Some((_, '-')), Some((_, '-'))) => {  // both l1 and l2 have negative prefixes
+                l1_larger = Ordering::Less;  // invert the comparison of absolute values
+                // skip the negative prefixes and start comparing absolute values
+                i1.next();
+                i2.next();
             }
-            // both are negative, skip the minus sign, remember to reverse the result
-            p1 += 1;
-            p2 += 1;
-            l1_larger = -1;
-        } else if char_at(l2, p2) == '-' {
-            // l2 is negative, l1 is positive, so l1 > l2
-            return 1;
+            (Some((_, '-')), Some((_, _))) => {  // only l1 has a negative prefix, so l1 < l2
+                return Ordering::Less;
+            }
+            (Some((_, _)), Some((_, '-'))) => {  // only l2 has a negative prefix, so l1 > l2
+                return Ordering::Greater;
+            }
+            (Some((_, _)), Some((_, _))) => {}  // neither has a negative prefix, continue
         }
 
-        // skip leading zeros in l1
-        while p1 < l1.len() && char_at(l1, p1) == '0' {
-            p1 += 1;
+        // skip leading zeros in i1
+        while let Some((_, c)) = i1.peek() {
+            if *c == '0' {
+                i1.next();
+            } else {
+                break;
+            }
         }
 
-        // skip leading zeros in l2
-        while p2 < l2.len() && char_at(l2, p2) == '0' {
-            p2 += 1;
+        // skip leading zeros in i2
+        while let Some((_, c)) = i2.peek() {
+            if *c == '0' {
+                i2.next();
+            } else {
+                break;
+            }
         }
 
-        let mut d1 = p1;
-        while d1 < l1.len() && has_digit_at(l1, d1) {
-            d1 += 1;
-        }
-
-        let mut d2 = p2;
-        while d2 < l2.len() && has_digit_at(l2, d2) {
-            d2 += 1;
-        }
-
-        if d1 - p1 > d2 - p2 {
-            // l1 has more integer digits than l2, so |l1| > |l2|
-            return l1_larger;
-        }
-        if d1 - p1 < d2 - p2 {
-            // l1 has fewer integer digits than l2, so |l1| < |l2|
-            return -l1_larger;
-        }
-
-        if &l1[p1..d1] > &l2[p2..d2] {
-            // l1 has the same number of integer digits as l2, but |l1| > |l2|
-            return l1_larger;
-        }
-        if &l1[p1..d1] < &l2[p2..d2] {
-            // l1 has the same number of integer digits as l2, but |l1| < |l2|
-            return -l1_larger;
-        }
-
-        if d1 >= l1.len() {
-            return if d2 >= l2.len() { 0 } else { -l1_larger };
-        }
-        if d2 >= l2.len() {
-            return l1_larger;
-        }
-
-        if char_at(l1, d1) > char_at(l2, d2) {
-            // a different non-digit character follows identical digits in l1 and l2
-            // and it sorts l1 after l2
-            return l1_larger;
-        }
-        if char_at(l1, d1) < char_at(l2, d2) {
-            // a different non-digit character follows identical digits in l1 and l2
-            // and it sorts l1 before l2
-            return -l1_larger;
-        }
-
-        if char_at(l1, d1) != '.' {
-            // the non-digit characters are not a decimal point, continue comparison
-            // after it
-            p1 = d1 + 1;
-            p2 = d2 + 1;
-            continue;
-        }
-        // l1 and l2 have the same integer part, compare the fractional part
-        p1 = d1 + 1;
-        p2 = d2 + 1;
+        let mut comparison = Ordering::Equal;
         loop {
-            if p1 >= l1.len() {
-                return if p2 >= l2.len() { 0 } else { -l1_larger };
-            }
-            if p2 >= l2.len() {
-                return l1_larger;
-            }
-            if char_at(l1, p1) == '\t' {
-                if char_at(l2, p2) == '\t' {
-                    // l1 and l2 have the same fractional part, they are equal
-                    p1 += 1;
-                    p2 += 1;
-                    continue 'next_field;
+            match (i1.next(), i2.next()) {
+                (Some((_, _)), None) => {  // end of line for l2
+                    return comparison.then(l1_larger);  // so |l1| > |l2| unless digits differed
+                },
+                (None, Some((_, _))) => {  // end of line for l1
+                    return match comparison {
+                        Ordering::Less => l1_larger.reverse(),  // by digits |l1| < |l2| anyway
+                        Ordering::Equal => l1_larger.reverse(),  // by convention, longer is larger
+                        Ordering::Greater => l1_larger,  // but digits differed and |l1| > |l2|
+                    };
+                },
+                (None, None) => {  // end of both lines, result depends on digit comparison
+                    return match comparison {
+                        Ordering::Less => l1_larger.reverse(),
+                        Ordering::Equal => Ordering::Equal,
+                        Ordering::Greater => l1_larger,
+                    };
                 }
-                // l1 has fewer fractional digits than l2, so |l1| < |l2|
-                return -l1_larger;
+                (Some((_, c1)), Some((_, c2))) => {
+                    if !c1.is_ascii_digit() {
+                        if c2.is_ascii_digit() {  // l1 has a non-digit character, l2 has a digit
+                            return l1_larger.reverse();  // so l2 is longer, thus |l1| < |l2|
+                        };
+                        // both l1 and l2 have a non-digit character after the same number of digits
+                        // so the result depends on digit comparisons before the non-digit character
+                        match comparison {
+                            // non-equal comparison before the non-digit character
+                            Ordering::Less => return l1_larger.reverse(),
+                            Ordering::Greater => return l1_larger,
+                            Ordering::Equal => {
+                                // l1 and l2 have the same digits until the non-digit character
+                                if c1 == '.' {
+                                    if c2 == '.' {
+                                        // it was a decimal point in both, and as both have the same
+                                        // integer part, now compare the fractional parts
+                                        break;
+                                    }
+                                    return l1_larger;  // l1 has fraction, l2 not, so |l1| > |l2|
+                                }
+                                if c2 == '.' {
+                                    return l1_larger.reverse();  // l2 has, l1 not, so |l1| < |l2|
+                                }
+                                // both l1 and l2 have a non-digit character, and it's not a decimal
+                                // so we shift to non-numeric comparison below
+                            }
+                        }
+                    } else if !c2.is_ascii_digit() {
+                        return l1_larger;  // l2 has a non-digit, l1 a digit, so |l1| > |l2|
+                    }
+                    // compare the next characters in l1 and l2, digit or not
+                    if comparison.is_eq() {  // all characters so far have been equal
+                        comparison = c1.cmp(&c2);  // so compare the current characters
+                        // note: we don't draw any conclusions yet, as we don't know if the number
+                        // of digits is the same in both lines
+                    }
+                }
             }
-            if char_at(l2, p2) == '\t' {
-                // l1 has more fractional digits than l2, so |l1| > |l2|
-                return l1_larger;
+        }
+
+        // l1 and l2 have the same integer part, compare the fractional part
+        loop {
+            match (i1.next(), i2.next()) {
+                (Some((_, _)), None) => return l1_larger,  // end of line for l2, so |l1| > |l2|
+                (None, Some((_, _))) => return l1_larger.reverse(),  // EOL for l1, so |l1| < |l2|
+                (None, None) => return Ordering::Equal,  // end of both lines, so l1 == l2
+                (Some((_, c1)), Some((_, c2))) => {
+                    if c1 == '\t' {  // field ends in l1
+                        if c2 == '\t' {  // field ends in l2, too
+                            // l1 and l2 have the same fractional part, they are equal
+                            continue 'next_field;
+                        }
+                        // l1 has fewer fractional digits than l2, so |l1| < |l2|
+                        return l1_larger.reverse();
+                    }
+                    if c2 == '\t' {  // field ends in l2
+                        // l1 has more fractional digits than l2, so |l1| > |l2|
+                        return l1_larger;
+                    }
+                    match c1.cmp(&c2) {
+                        Ordering::Less => return l1_larger.reverse(),
+                        Ordering::Greater => return l1_larger,
+                        Ordering::Equal => continue,
+                    }
+                }
             }
-            if char_at(l1, p1) > char_at(l2, p2) {
-                // fractional part of l1 is greater than that of l2, so |l1| > |l2|
-                return l1_larger;
-            }
-            if char_at(l1, p1) < char_at(l2, p2) {
-                // fractional part of l1 is less than that of l2, so |l1| < |l2|
-                return -l1_larger;
-            }
-            // l1 and l2 have the same fractional part up to here, continue comparison
-            p1 += 1;
-            p2 += 1;
         }
     }
 }
+
 #[cfg(test)]
 #[macro_use]
 extern crate rstest;
+
+use std::cmp::Ordering;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[rstest]
-    // integers
-    #[case("123", "123", 0)]
-    #[case("123", "124", -1)]
-    #[case("124", "123", 1)]
-    #[case("123", "1234", -1)]
-    #[case("1234", "123", 1)]
-    #[case("-123", "123", -1)]
-    #[case("123", "-123", 1)]
-    #[case("-123", "-123", 0)]
-    #[case("-123", "-124", 1)]
-    #[case("-124", "-123", -1)]
-    // integers vs. floats
-    #[case("123", "123.0", -1)] // by convention, shorter notation is less than longer
-    #[case("123", "123.1", -1)]
-    #[case("123.1", "123", 1)]
-    #[case("123.0", "123", 1)] // by convention, shorter notation is less than longer
-    #[case("123.0", "123.1", -1)]
-    #[case("123.1", "123.0", 1)]
-    #[case("123.0", "123.01", -1)]
-    #[case("123.01", "123.0", 1)]
-    // floats
-    #[case("123.0", "123.0", 0)]
-    #[case("123.0", "123.1", -1)]
-    #[case("123.1", "123.0", 1)]
-    #[case("123.0", "123.00", -1)]  // by convention, shorter notation less than longer
-    #[case("123.00", "123.0", 1)]  // by convention, shorter notation less than longer-
-    #[case("123.0", "123.01", -1)]
-    #[case("123.01", "123.0", 1)]
-    #[case("123.0", "124.0", -1)]
-    #[case("124.0", "123.0", 1)]
-    #[case("123.0", "124.1", -1)]
-    #[case("124.1", "123.0", 1)]
-    #[case("123.0", "124.00", -1)]
-    #[case("124.00", "123.0", 1)]
-    #[case("123.0", "124.01", -1)]
-    #[case("124.01", "123.0", 1)]
-    // negative floats
-    #[case("-123.0", "123.0", -1)]
-    #[case("123.0", "-123.0", 1)]
-    #[case("-123.0", "-123.0", 0)]
-    #[case("-123.0", "-123.1", 1)]
-    #[case("-123.1", "-123.0", -1)]
-    #[case("-123.0", "-123.00", 1)]  // by convention, shorter notation less than long
-    #[case("-123.00", "-123.0", -1)]  // by convention, shorter notation less than long
-    #[case("-123.02", "-123.01", -1)]
-    #[case("-123.01", "-123.02", 1)]
-    #[case("-123.00", "-123.01", 1)]
-    #[case("-123.01", "-123.00", -1)]
-    #[case("-123.0", "-123.01", 1)]
-    #[case("-123.01", "-123.0", -1)]
-    #[case("-123.0", "-124.0", 1)]
-    #[case("-124.0", "-123.0", -1)]
-    #[case("-123.0", "-124.1", 1)]
-    #[case("-124.1", "-123.0", -1)]
-    #[case("-123.0", "-124.00", 1)]
-    #[case("-124.00", "-123.0", -1)]
-    #[case("-123.0", "-124.01", 1)]
-    #[case("-124.01", "-123.0", -1)]
+    // integers, equal length
+    #[case("123", "123", Ordering::Equal)]
+    #[case("123", "124", Ordering::Less)]
+    #[case("124", "123", Ordering::Greater)]
+    // integers, different length
+    #[case("123", "1234", Ordering::Less)]
+    #[case("1234", "123", Ordering::Greater)]
     // negative integers
-    #[case("-123", "123", -1)]
-    #[case("123", "-123", 1)]
-    #[case("-123", "-123", 0)]
-    #[case("-123", "-124", 1)]
-    #[case("-124", "-123", -1)]
+    #[case("-123", "123", Ordering::Less)]
+    #[case("123", "-123", Ordering::Greater)]
+    #[case("-123", "-123", Ordering::Equal)]
+    #[case("-123", "-124", Ordering::Greater)]
+    #[case("-124", "-123", Ordering::Less)]
+    // integers vs. floats
+    #[case("123", "122.9", Ordering::Greater)]
+    #[case("123", "123.0", Ordering::Less)] // by convention, shorter notation is less than longer
+    #[case("123", "123.1", Ordering::Less)]
+    #[case("123.1", "123", Ordering::Greater)]
+    #[case("123.0", "123", Ordering::Greater)] // by convention, shorter notation is less than longer
+    #[case("122.9", "123", Ordering::Less)]
+    // floats vs. floats, equal length, same integer part
+    #[case("123.1", "123.1", Ordering::Equal)]
+    #[case("123.0", "123.1", Ordering::Less)]
+    #[case("123.1", "123.0", Ordering::Greater)]
+    // floats vs. floats, different length, same integer part
+    #[case("123.0", "123.01", Ordering::Less)]
+    #[case("123.01", "123.0", Ordering::Greater)]
+    #[case("123.0", "123.00", Ordering::Less)] // by convention, shorter notation less than longer
+    #[case("123.00", "123.0", Ordering::Greater)] // by convention, shorter notation less than longer-
+    // floats vs. floats, same length, different integer part
+    #[case("123.0", "124.0", Ordering::Less)]
+    #[case("124.0", "123.0", Ordering::Greater)]
+    #[case("123.0", "124.1", Ordering::Less)]
+    #[case("124.1", "123.0", Ordering::Greater)]
+    // floats vs. floats, different length, different integer part
+    #[case("123.0", "124.00", Ordering::Less)]
+    #[case("124.00", "123.0", Ordering::Greater)]
+    #[case("123.0", "124.01", Ordering::Less)]
+    #[case("124.01", "123.0", Ordering::Greater)]
+    // negative floats
+    #[case("-123.0", "123.0", Ordering::Less)]
+    #[case("123.0", "-123.0", Ordering::Greater)]
+    #[case("-123.0", "-123.0", Ordering::Equal)]
+    #[case("-123.0", "-123.1", Ordering::Greater)]
+    #[case("-123.1", "-123.0", Ordering::Less)]
+    #[case("-123.0", "-123.00", Ordering::Greater)] // by convention, shorter notation less than long
+    #[case("-123.00", "-123.0", Ordering::Less)] // by convention, shorter notation less than long
+    #[case("-123.02", "-123.01", Ordering::Less)]
+    #[case("-123.01", "-123.02", Ordering::Greater)]
+    #[case("-123.00", "-123.01", Ordering::Greater)]
+    #[case("-123.01", "-123.00", Ordering::Less)]
+    #[case("-123.0", "-123.01", Ordering::Greater)]
+    #[case("-123.01", "-123.0", Ordering::Less)]
+    #[case("-123.0", "-124.0", Ordering::Greater)]
+    #[case("-124.0", "-123.0", Ordering::Less)]
+    #[case("-123.0", "-124.1", Ordering::Greater)]
+    #[case("-124.1", "-123.0", Ordering::Less)]
+    #[case("-123.0", "-124.00", Ordering::Greater)]
+    #[case("-124.00", "-123.0", Ordering::Less)]
+    #[case("-123.0", "-124.01", Ordering::Greater)]
+    #[case("-124.01", "-123.0", Ordering::Less)]
     // negative integers vs. floats
-    #[case("-123", "123.0", -1)]
-    #[case("123", "-123.0", 1)]
-    #[case("-123.0", "123", -1)]
-    #[case("123.0", "-123", 1)]
-    #[case("-123", "123.1", -1)]
-    #[case("123.1", "-123", 1)]
-    #[case("-123.1", "123", -1)]
-    #[case("123", "-123.1", 1)]
-    #[case("-123", "123.0", -1)]
-    #[case("123", "-123.0", 1)]
-    #[case("-123.0", "123", -1)]
-    #[case("123.0", "-123", 1)]
-    #[case("-123", "123.00", -1)]
-    #[case("123.00", "-123", 1)]
-    #[case("-123.00", "123", -1)]
-    #[case("123", "-123.00", 1)]
-    #[case("-123", "123.01", -1)]
-    #[case("123.01", "-123", 1)]
-    #[case("-123.01", "123", -1)]
-    #[case("123", "-123.01", 1)]
-
-    fn test_linecomp(#[case] l1: &str, #[case] l2: &str, #[case] expected: i32) {
+    #[case("-123", "123.0", Ordering::Less)]
+    #[case("123", "-123.0", Ordering::Greater)]
+    #[case("-123.0", "123", Ordering::Less)]
+    #[case("123.0", "-123", Ordering::Greater)]
+    #[case("-123", "123.1", Ordering::Less)]
+    #[case("123.1", "-123", Ordering::Greater)]
+    #[case("-123.1", "123", Ordering::Less)]
+    #[case("123", "-123.1", Ordering::Greater)]
+    #[case("-123", "123.0", Ordering::Less)]
+    #[case("123", "-123.0", Ordering::Greater)]
+    #[case("-123.0", "123", Ordering::Less)]
+    #[case("123.0", "-123", Ordering::Greater)]
+    #[case("-123", "123.00", Ordering::Less)]
+    #[case("123.00", "-123", Ordering::Greater)]
+    #[case("-123.00", "123", Ordering::Less)]
+    #[case("123", "-123.00", Ordering::Greater)]
+    #[case("-123", "123.01", Ordering::Less)]
+    #[case("123.01", "-123", Ordering::Greater)]
+    #[case("-123.01", "123", Ordering::Less)]
+    #[case("123", "-123.01", Ordering::Greater)]
+    fn test_linecomp(#[case] l1: &str, #[case] l2: &str, #[case] expected: Ordering) {
         assert_eq!(
             linecomp(l1, l2),
             expected,
             "linecomp({}, {}) == {}, expected {}",
             l1,
             l2,
-            linecomp(l1, l2),
-            expected
+            linecomp(l1, l2) as i8,
+            expected as i8,
         );
     }
 }
