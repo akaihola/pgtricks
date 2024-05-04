@@ -9,11 +9,19 @@ fn linecomp(l1: &str, l2: &str) -> i8 {
     }
 }
 
+#[pyfunction]
+fn sort_lines(lines: Vec<String>) -> Vec<String> {
+    let mut lines = lines;
+    lines.sort_by(|a, b| tsv_cmp(a, b));
+    lines
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 #[pyo3(name="_tsv_sort")]
 fn tsv_sort(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(linecomp, m)?)?;
+    m.add_function(wrap_pyfunction!(sort_lines, m)?)?;
     Ok(())
 }
 

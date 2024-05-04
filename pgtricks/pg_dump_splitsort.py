@@ -9,8 +9,6 @@ import re
 from argparse import ArgumentParser
 from typing import IO, Iterable, Match, Pattern
 
-from pgtricks._tsv_sort import linecomp
-
 from pgtricks.mergesort import MergeSort
 
 COPY_RE = re.compile(r"COPY\s+\S+\s+(\(.*?\)\s+)?FROM\s+stdin;\n$")
@@ -18,7 +16,7 @@ KIBIBYTE, MEBIBYTE, GIBIBYTE = 2**10, 2**20, 2**30
 MEMORY_UNITS = {"": 1, "k": KIBIBYTE, "m": MEBIBYTE, "g": GIBIBYTE}
 
 
-def _linecomp(l1: str, l2: str) -> int:
+def linecomp(l1: str, l2: str) -> int:
     p1 = 0
     p2 = 0
     prev_p1 = None
@@ -186,10 +184,7 @@ def split_sql_file(  # noqa: C901  too complex
                             schema=matcher.group('schema'),
                             table=matcher.group('table')))
                 elif COPY_RE.match(line):
-                    sorted_data_lines = MergeSort(
-                        key=functools.cmp_to_key(linecomp),
-                        max_memory=max_memory,
-                    )
+                    sorted_data_lines = MergeSort(max_memory=max_memory)
                 elif SEQUENCE_SET_RE.match(line):
                     pass
                 elif 1 <= counter < 9999:

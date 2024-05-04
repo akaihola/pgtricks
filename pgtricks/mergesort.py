@@ -3,22 +3,21 @@
 from __future__ import annotations
 
 import sys
+from functools import cmp_to_key
 from heapq import merge
 from tempfile import TemporaryFile
 from typing import IO, Any, Callable, Iterable, Iterator, cast
 
+from pgtricks._tsv_sort import sort_lines, linecomp
+
+
+SORT_KEY = cmp_to_key(linecomp)
 
 class MergeSort(Iterable[str]):
     """Merge sort implementation to handle large files by sorting them in partitions."""
 
-    def __init__(
-        self,
-        key: Callable[[str], Any] = str,
-        directory: str = ".",
-        max_memory: int = 190,
-    ) -> None:
+    def __init__(self, directory: str = ".", max_memory: int = 190) -> None:
         """Initialize the merge sort object."""
-        self._key = key
         self._directory = directory
         self._max_memory = max_memory
         # Use binary mode to avoid newline conversion on Windows.
@@ -44,9 +43,8 @@ class MergeSort(Iterable[str]):
         if self._buffer:
             # Use binary mode to avoid newline conversion on Windows.
             self._partitions.append(TemporaryFile(mode="w+b", dir=self._directory))
-            self._partitions[-1].writelines(
-                line.encode("UTF-8") for line in sorted(self._buffer, key=self._key)
-            )
+            sorted_lines = sort_lines(self._buffer)
+            self._partitions[-1].writelines(line.encode("UTF-8") for line in sorted_lines)
         self._buffer = []
         self._memory_counter = sys.getsizeof(self._buffer)
 
@@ -64,11 +62,11 @@ class MergeSort(Iterable[str]):
                         (line.decode("UTF-8") for line in partition)
                         for partition in self._partitions
                     ],
-                    key=self._key,
+                    key=SORT_KEY,
                 )
             else:
                 # All lines fit in memory. Iterate the list of lines directly.
-                self._iterating = iter(sorted(self._buffer, key=self._key))
+                self._iterating = iter(sort_lines(self._buffer))
         return next(cast(Iterator[str], self._iterating))
 
     def __iter__(self) -> Iterator[str]:
