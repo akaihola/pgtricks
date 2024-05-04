@@ -1,4 +1,48 @@
-fn linecomp(l1: &str, l2: &str) -> Ordering {
+/// Compare two tab-delimited lines lexicographically, treating numbers as numbers.
+///
+/// The function `linecomp` compares two tab-delimited lines lexicographically, treating numbers
+/// as numbers. The implementation is optimized for speed and consistent sorting, not a fully
+/// logical sorting order.
+///
+/// The comparison is done field by field, and the fields are compared as follows:
+///
+/// 1. If the field is identical on both lines, move on to the next field.
+/// 2. If both fields start with a negative sign, the comparison of the remainder of the fields is
+///    inverted.
+/// 3. If only one field starts with a negative sign, the field with the negative sign is considered
+///    smaller, even if the rest of the content is not numeric.
+/// 6. Leading zeros are skipped.
+/// 7. If one of the fields has more remaining digits before the first non-digit or field end, it is
+///    considered larger.
+/// 8. If both fields have the same number of initial non-leading-zero digits, the one whose
+///    earliest digit is larger is considered larger.
+/// 8. After initial identical digits, comparison continues character by character until field end.
+/// 9. If there's a decimal point at the same position in both fields, comparison continues after
+///    them character by character. The first differing character determines the comparison result.
+/// 10. If one of the fields has extra characters, it is considered larger.
+///     This means that we consider e.g. 123.00 > 123.0 (which is fine for our purposes)
+///
+/// # Arguments
+///
+/// * `l1` - The first line to compare.
+/// * `l2` - The second line to compare.
+///
+/// # Returns
+///
+/// The function returns an `Ordering` value, which is one of `Less`, `Equal`, or `Greater`.
+///
+/// # Examples
+///
+/// ```
+/// use pgtricks::linecomp;
+/// use std::cmp::Ordering;
+///
+/// assert_eq!(linecomp("123", "123"), Ordering::Equal);
+/// assert_eq!(linecomp("123", "124"), Ordering::Less);
+/// assert_eq!(linecomp("124", "123"), Ordering::Greater);
+/// assert_eq!(linecomp("123\tour", "123\town"), Ordering::Less);
+///
+pub fn linecomp(l1: &str, l2: &str) -> Ordering {
     let mut i1 = l1.chars().peekable();
     let mut i2 = l2.chars().peekable();
     let mut l1_larger = Ordering::Greater;
