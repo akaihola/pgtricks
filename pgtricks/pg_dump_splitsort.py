@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import functools
 import io
 import os
 import re
@@ -10,6 +9,7 @@ from argparse import ArgumentParser
 from typing import IO, Iterable, Match, Pattern
 
 from pgtricks.mergesort import MergeSort
+from pgtricks._tsv_sort import sort_file_lines
 
 COPY_RE = re.compile(r"COPY\s+\S+\s+(\(.*?\)\s+)?FROM\s+stdin;\n$")
 KIBIBYTE, MEBIBYTE, GIBIBYTE = 2**10, 2**20, 2**30
@@ -169,35 +169,40 @@ def split_sql_file(  # noqa: C901  too complex
     output = new_output('0000_prologue.sql')
     matcher = Matcher()
 
-    for line in open(sql_filepath):
-        if sorted_data_lines is None:
-            if line in ('\n', '--\n'):
-                buf.append(line)
-            elif line.startswith('SET search_path = '):
-                writelines([line])
+    position = 0
+    with open(sql_filepath) as sql_file:
+        while True:
+            line = sql_file.readline()
+            if sorted_data_lines is None:
+                if line in ('\n', '--\n'):
+                    buf.append(line)
+                elif line.startswith('SET search_path = '):
+                    writelines([line])
+                else:
+                    if matcher.match(DATA_COMMENT_RE, line):
+                        counter += 1
+                        output = new_output(
+                            '{counter:04}_{schema}.{table}.sql'.format(
+                                counter=counter,
+                                schema=matcher.group('schema'),
+                                table=matcher.group('table')))
+                    elif COPY_RE.match(line):
+                        sorted_data_lines = MergeSort(max_memory=max_memory)
+                    elif SEQUENCE_SET_RE.match(line):
+                        pass
+                    elif 1 <= counter < 9999:
+                        counter = 9999
+                        output = new_output('%04d_epilogue.sql' % counter)
+                    writelines([line])
             else:
-                if matcher.match(DATA_COMMENT_RE, line):
-                    counter += 1
-                    output = new_output(
-                        '{counter:04}_{schema}.{table}.sql'.format(
-                            counter=counter,
-                            schema=matcher.group('schema'),
-                            table=matcher.group('table')))
-                elif COPY_RE.match(line):
-                    sorted_data_lines = MergeSort(max_memory=max_memory)
-                elif SEQUENCE_SET_RE.match(line):
-                    pass
-                elif 1 <= counter < 9999:
-                    counter = 9999
-                    output = new_output('%04d_epilogue.sql' % counter)
-                writelines([line])
-        else:
-            if line == "\\.\n":
-                writelines(sorted_data_lines)
-                writelines(line)
+                if line != "\\.\n":
+                    output.close()
+                    new_position = sort_file_lines(sql_filepath, output.name, position, r"\.")
+                    print(f"sort_file_lines({sql_filepath!r}, {output.name!r}, {position}, r\"\\.\") == {new_position}")
+                    sql_file.seek(new_position)
+                    output = open(output.name, "a")
                 sorted_data_lines = None
-            else:
-                sorted_data_lines.append(line)
+            position = sql_file.tell()
     flush()
 
 
