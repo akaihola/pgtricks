@@ -68,23 +68,8 @@ pub fn linecomp(l1: &str, l2: &str) -> Ordering {
             (Some(_), Some(_)) => {}  // neither has a negative prefix, continue
         }
 
-        // skip leading zeros in i1
-        while let Some(c) = i1.peek() {
-            if *c == '0' {
-                i1.next();
-            } else {
-                break;
-            }
-        }
-
-        // skip leading zeros in i2
-        while let Some(c) = i2.peek() {
-            if *c == '0' {
-                i2.next();
-            } else {
-                break;
-            }
-        }
+        skip_leading_zeros(&mut i1);
+        skip_leading_zeros(&mut i2);
 
         let mut comparison = Ordering::Equal;
         loop {
@@ -177,11 +162,24 @@ pub fn linecomp(l1: &str, l2: &str) -> Ordering {
     }
 }
 
+
+fn skip_leading_zeros(iter: &mut Peekable<Chars>) {
+    while let Some(c) = iter.peek() {
+        if *c == '0' {
+            iter.next();
+        } else {
+            break;
+        }
+    }
+}
+
 #[cfg(test)]
 #[macro_use]
 extern crate rstest;
 
 use std::cmp::Ordering;
+use std::iter::Peekable;
+use std::str::Chars;
 
 #[cfg(test)]
 mod tests {
