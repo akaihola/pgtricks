@@ -270,6 +270,22 @@ mod tests {
     #[case("123.01", "-123", Ordering::Greater)]
     #[case("-123.01", "123", Ordering::Less)]
     #[case("123", "-123.01", Ordering::Greater)]
+    // non-numeric
+    #[case("123", "our", Ordering::Greater)]  // positive numbers considered greater than words
+    #[case("own", "-123", Ordering::Greater)]  // negative numbers considered less than words
+    #[case("our", "own", Ordering::Less)]  // negative numbers considered less than words
+    #[case("own", "our", Ordering::Greater)]  // negative numbers considered less than words
+    #[case("123our", "123own", Ordering::Less)]  // identical numeric prefix ignored
+    #[case("123own", "123our", Ordering::Greater)]
+    #[case("1234our", "123own", Ordering::Greater)]  // larger numeric prefix considered larger
+    #[case("123own", "1234our", Ordering::Less)]
+    #[case("12h34", "12h345", Ordering::Less)]  // non-decimal delimiter starts new integers
+    #[case("12h345", "12h34", Ordering::Greater)]
+    // multiple fields
+    #[case("identical\t12.34", "identical\t12.340", Ordering::Less)]
+    #[case("identical\t12.340", "identical\t12.34", Ordering::Greater)]
+    #[case("identical\tlines\n", "identical\tlines\n", Ordering::Equal)]
+
     fn test_linecomp(#[case] l1: &str, #[case] l2: &str, #[case] expected: Ordering) {
         assert_eq!(
             linecomp(l1, l2),
