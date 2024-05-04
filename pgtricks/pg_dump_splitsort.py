@@ -7,7 +7,9 @@ import io
 import os
 import re
 from argparse import ArgumentParser
-from typing import IO, Iterable, Match, Pattern, cast
+from typing import IO, Iterable, Match, Pattern
+
+from pgtricks._tsv_sort import linecomp
 
 from pgtricks.mergesort import MergeSort
 
@@ -16,27 +18,105 @@ KIBIBYTE, MEBIBYTE, GIBIBYTE = 2**10, 2**20, 2**30
 MEMORY_UNITS = {"": 1, "k": KIBIBYTE, "m": MEBIBYTE, "g": GIBIBYTE}
 
 
-def try_float(s1: str, s2: str) -> tuple[str, str] | tuple[float, float]:
-    """Convert two strings to floats. Return original ones on conversion error."""
-    if not s1 or not s2 or s1[0] not in '0123456789.-' or s2[0] not in '0123456789.-':
-        # optimization
-        return s1, s2
-    try:
-        return float(s1), float(s2)
-    except ValueError:
-        return s1, s2
+def _linecomp(l1: str, l2: str) -> int:
+    p1 = 0
+    p2 = 0
+    prev_p1 = None
+    prev_p2 = None
+    while True:
+        if p1 == prev_p1 and p2 == prev_p2:
+            raise RuntimeError("Infinite loop in linecomp")
+        prev_p1 = p1
+        prev_p2 = p2
+        if p1 >= len(l1):
+            return 0 if p2 >= len(l2) else -1
+        if p2 >= len(l2):
+            return 1
+        l1_larger = 1
+        if l1[p1] == "-":
+            if l2[p2] != "-":
+                # l1 is negative, l2 is positive, so l1 < l2
+                return -1
+            # both are negative, skip the minus sign, remember to reverse the result
+            p1 += 1
+            p2 += 1
+            l1_larger = -1
+        elif l2[p2] == "-":
+            # l2 is negative, l1 is positive, so l1 > l2
+            return 1
+        while p1 < len(l1) and l1[p1] == "0":
+            # skip leading zeros in l1
+            p1 += 1
+        while p2 < len(l2) and l2[p2] == "0":
+            # skip leading zeros in l2
+            p2 += 1
+        d1 = p1
+        for d1 in range(p1, len(l1)):
+            # find the next non-digit character in l1
+            if l1[d1] not in '0123456789':
+                break
+        d2 = p2
+        for d2 in range(p2, len(l2)):
+            # find the next non-digit character in l2
+            if l2[d2] not in '0123456789':
+                break
+        if d1 - p1 > d2 - p2:
+            # l1 has more integer digits than l2, so |l1| > |l2|
+            return l1_larger
+        if d1 - p1 < d2 - p2:
+            # l1 has fewer integer digits than l2, so |l1| < |l2|
+            return -l1_larger
+        if l1[p1:d1] > l2[p2:d2]:
+            # l1 has the same number of integer digits as l2, but |l1| > |l2|
+            return l1_larger
+        if l1[p1:d1] < l2[p2:d2]:
+            # l1 has the same number of integer digits as l2, but |l1| < |l2|
+            return -l1_larger
+        if d1 >= len(l1):
+            return 0 if d2 >= len(l2) else -l1_larger
+        if d2 >= len(l2):
+            return l1_larger
+        if l1[d1] > l2[d2]:
+            # a different non-digit character follows identical digits in l1 and l2
+            # and it sorts l1 after l2
+            return l1_larger
+        if l1[d1] < l2[d2]:
+            # a different non-digit character follows identical digits in l1 and l2
+            # and it sorts l1 before l2
+            return -l1_larger
+        if l1[d1] != ".":
+            # the non-digit characters are not a decimal point, continue comparison
+            # after it
+            p1 = d1 + 1
+            p2 = d2 + 1
+            continue
+        # l1 and l2 have the same integer part, compare the fractional part
+        p1 = d1 + 1
+        p2 = d2 + 1
+        next_field = False
+        while not next_field and p1 < len(l1) and p2 < len(l2):
+            if l1[p1] == "\t":
+                if l2[p2] == "\t":
+                    # l1 and l2 have the same fractional part, they are equal
+                    p1 += 1
+                    p2 += 1
+                    next_field = True
+                    continue
+                # l1 has fewer fractional digits than l2, so |l1| < |l2|
+                return -l1_larger
+            if l2[p2] == "\t":
+                # l1 has more fractional digits than l2, so |l1| > |l2|
+                return l1_larger
+            if l1[p1] > l2[p2]:
+                # fractional part of l1 is greater than that of l2, so |l1| > |l2|
+                return l1_larger
+            if l1[p1] < l2[p2]:
+                # fractional part of l1 is less than that of l2, so |l1| < |l2|
+                return -l1_larger
+            # l1 and l2 have the same fractional part up to here, continue comparison
+            p1 += 1
+            p2 += 1
 
-
-def linecomp(l1: str, l2: str) -> int:
-    p1 = l1.split('\t', 1)
-    p2 = l2.split('\t', 1)
-    # TODO: unquote cast after support for Python 3.8 is dropped
-    v1, v2 = cast("tuple[float, float]", try_float(p1[0], p2[0]))
-    result = (v1 > v2) - (v1 < v2)
-    # modifying a line to see whether Darker works:
-    if not result and len(p1) == len(p2) == 2:
-        return linecomp(p1[1], p2[1])
-    return result
 
 DATA_COMMENT_RE = re.compile('-- Data for Name: (?P<table>.*?); '
                              'Type: TABLE DATA; '

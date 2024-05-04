@@ -1,8 +1,27 @@
+use pyo3::prelude::*;
+
+#[pyfunction]
+fn linecomp(l1: &str, l2: &str) -> i8 {
+    match tsv_cmp(l1, l2) {
+        Ordering::Less => -1,
+        Ordering::Equal => 0,
+        Ordering::Greater => 1,
+    }
+}
+
+/// A Python module implemented in Rust.
+#[pymodule]
+#[pyo3(name="_tsv_sort")]
+fn tsv_sort(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(linecomp, m)?)?;
+    Ok(())
+}
+
 /// Compare two tab-delimited lines lexicographically, treating numbers as numbers.
 ///
-/// The function `linecomp` compares two tab-delimited lines lexicographically, treating numbers
-/// as numbers. The implementation is optimized for speed and consistent sorting, not a fully
-/// logical sorting order.
+/// The function `tsv_cmp` compares two tab-delimited lines lexicographically, treating
+/// numbers as numbers. The implementation is optimized for speed and consistent sorting, not a
+/// fully logical sorting order.
 ///
 /// The comparison is done field by field, and the fields are compared as follows:
 ///
@@ -34,15 +53,15 @@
 /// # Examples
 ///
 /// ```
-/// use pgtricks::linecomp;
+/// use pgtricks::tsv_cmp;
 /// use std::cmp::Ordering;
 ///
-/// assert_eq!(linecomp("123", "123"), Ordering::Equal);
-/// assert_eq!(linecomp("123", "124"), Ordering::Less);
-/// assert_eq!(linecomp("124", "123"), Ordering::Greater);
-/// assert_eq!(linecomp("123\tour", "123\town"), Ordering::Less);
+/// assert_eq!(tsv_cmp("123", "123"), Ordering::Equal);
+/// assert_eq!(tsv_cmp("123", "124"), Ordering::Less);
+/// assert_eq!(tsv_cmp("124", "123"), Ordering::Greater);
+/// assert_eq!(tsv_cmp("123\tour", "123\town"), Ordering::Less);
 ///
-pub fn linecomp(l1: &str, l2: &str) -> Ordering {
+pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
     let mut l1_chars = l1.chars().peekable();
     let mut l2_chars = l2.chars().peekable();
     let mut l1_larger = Ordering::Greater;
@@ -287,12 +306,12 @@ mod tests {
     #[case("42\tfoo\n", "42\tbar\n", Ordering::Greater)]
     fn test_linecomp(#[case] l1: &str, #[case] l2: &str, #[case] expected: Ordering) {
         assert_eq!(
-            linecomp(l1, l2),
+            tsv_cmp(l1, l2),
             expected,
-            "linecomp({}, {}) == {}, expected {}",
+            "tsv_cmp({}, {}) == {}, expected {}",
             l1,
             l2,
-            linecomp(l1, l2) as i8,
+            tsv_cmp(l1, l2) as i8,
             expected as i8,
         );
     }
