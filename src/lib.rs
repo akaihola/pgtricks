@@ -283,7 +283,8 @@ mod tests {
     #[case("identical\t12.34", "identical\t12.340", Ordering::Less)]
     #[case("identical\t12.340", "identical\t12.34", Ordering::Greater)]
     #[case("identical\tlines\n", "identical\tlines\n", Ordering::Equal)]
-
+    #[case("12\tfoo\n", "123\tfoo\n", Ordering::Less)]
+    #[case("42\tfoo\n", "42\tbar\n", Ordering::Greater)]
     fn test_linecomp(#[case] l1: &str, #[case] l2: &str, #[case] expected: Ordering) {
         assert_eq!(
             linecomp(l1, l2),
