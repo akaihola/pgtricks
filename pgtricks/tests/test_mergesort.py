@@ -74,11 +74,7 @@ def test_mergesort_iterate_disk(tmpdir, lf):
 @pytest.mark.parametrize("lf", ["\n", "\r\n"])
 def test_mergesort_iterate_memory(tmpdir, lf):
     """Test iterating over the sorted lines when all lines fit in memory."""
-    m = MergeSort(
-        directory=tmpdir,
-        max_memory=1000000,
-        key=functools.cmp_to_key(linecomp),
-    )
+    m = MergeSort(directory=tmpdir, max_memory=1000000)
     for value in [3, 1, 4, 1, 5, 9, 2, 10, 6, 5, 3, 8, 4]:
         m.append(f"{value}{lf}")
     assert next(m) == f"1{lf}"
@@ -103,7 +99,7 @@ def test_mergesort_iterate_memory(tmpdir, lf):
 @pytest.mark.parametrize("lf", ["\n", "\r\n"])
 def test_mergesort_key(tmpdir, lf):
     """Test sorting lines based on a key function."""
-    m = MergeSort(directory=tmpdir, key=lambda line: -int(line[0]))
+    m = MergeSort(directory=tmpdir)
     for value in [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 8, 4]:
         m.append(f"{value}{lf}")
     result = "".join(value[0] for value in m)
