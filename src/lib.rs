@@ -1,31 +1,31 @@
 fn linecomp(l1: &str, l2: &str) -> Ordering {
-    let mut i1 = l1.char_indices().peekable();
-    let mut i2 = l2.char_indices().peekable();
+    let mut i1 = l1.chars().peekable();
+    let mut i2 = l2.chars().peekable();
     let mut l1_larger = Ordering::Greater;
 
     'next_field: loop {
         // handle negative prefixes and end of lines
         match (i1.peek(), i2.peek()) {
-            (Some((_, _)), None) => return Ordering::Greater,  // end of line for l2, so l1 > l2
-            (None, Some((_, _))) => return Ordering::Less,  // end of line for l1, so l1 < l2
+            (Some(_), None) => return Ordering::Greater,  // end of line for l2, so l1 > l2
+            (None, Some(_)) => return Ordering::Less,  // end of line for l1, so l1 < l2
             (None, None) => return Ordering::Equal,  // end of both lines, so l1 == l2
-            (Some((_, '-')), Some((_, '-'))) => {  // both l1 and l2 have negative prefixes
+            (Some('-'), Some('-')) => {  // both l1 and l2 have negative prefixes
                 l1_larger = Ordering::Less;  // invert the comparison of absolute values
                 // skip the negative prefixes and start comparing absolute values
                 i1.next();
                 i2.next();
             }
-            (Some((_, '-')), Some((_, _))) => {  // only l1 has a negative prefix, so l1 < l2
+            (Some('-'), Some(_)) => {  // only l1 has a negative prefix, so l1 < l2
                 return Ordering::Less;
             }
-            (Some((_, _)), Some((_, '-'))) => {  // only l2 has a negative prefix, so l1 > l2
+            (Some(_), Some('-')) => {  // only l2 has a negative prefix, so l1 > l2
                 return Ordering::Greater;
             }
-            (Some((_, _)), Some((_, _))) => {}  // neither has a negative prefix, continue
+            (Some(_), Some(_)) => {}  // neither has a negative prefix, continue
         }
 
         // skip leading zeros in i1
-        while let Some((_, c)) = i1.peek() {
+        while let Some(c) = i1.peek() {
             if *c == '0' {
                 i1.next();
             } else {
@@ -34,7 +34,7 @@ fn linecomp(l1: &str, l2: &str) -> Ordering {
         }
 
         // skip leading zeros in i2
-        while let Some((_, c)) = i2.peek() {
+        while let Some(c) = i2.peek() {
             if *c == '0' {
                 i2.next();
             } else {
@@ -45,16 +45,16 @@ fn linecomp(l1: &str, l2: &str) -> Ordering {
         let mut comparison = Ordering::Equal;
         loop {
             match (i1.next(), i2.next()) {
-                (Some((_, _)), None) => {  // end of line for l2
+                (Some(_), None) => {  // end of line for l2
                     return comparison.then(l1_larger);  // so |l1| > |l2| unless digits differed
-                },
-                (None, Some((_, _))) => {  // end of line for l1
+                }
+                (None, Some(_)) => {  // end of line for l1
                     return match comparison {
                         Ordering::Less => l1_larger.reverse(),  // by digits |l1| < |l2| anyway
                         Ordering::Equal => l1_larger.reverse(),  // by convention, longer is larger
                         Ordering::Greater => l1_larger,  // but digits differed and |l1| > |l2|
                     };
-                },
+                }
                 (None, None) => {  // end of both lines, result depends on digit comparison
                     return match comparison {
                         Ordering::Less => l1_larger.reverse(),
@@ -62,7 +62,7 @@ fn linecomp(l1: &str, l2: &str) -> Ordering {
                         Ordering::Greater => l1_larger,
                     };
                 }
-                (Some((_, c1)), Some((_, c2))) => {
+                (Some(c1), Some(c2)) => {
                     if !c1.is_ascii_digit() {
                         if c2.is_ascii_digit() {  // l1 has a non-digit character, l2 has a digit
                             return l1_larger.reverse();  // so l2 is longer, thus |l1| < |l2|
@@ -106,10 +106,10 @@ fn linecomp(l1: &str, l2: &str) -> Ordering {
         // l1 and l2 have the same integer part, compare the fractional part
         loop {
             match (i1.next(), i2.next()) {
-                (Some((_, _)), None) => return l1_larger,  // end of line for l2, so |l1| > |l2|
-                (None, Some((_, _))) => return l1_larger.reverse(),  // EOL for l1, so |l1| < |l2|
+                (Some(_), None) => return l1_larger,  // end of line for l2, so |l1| > |l2|
+                (None, Some(_)) => return l1_larger.reverse(),  // EOL for l1, so |l1| < |l2|
                 (None, None) => return Ordering::Equal,  // end of both lines, so l1 == l2
-                (Some((_, c1)), Some((_, c2))) => {
+                (Some(c1), Some(c2)) => {
                     if c1 == '\t' {  // field ends in l1
                         if c2 == '\t' {  // field ends in l2, too
                             // l1 and l2 have the same fractional part, they are equal
