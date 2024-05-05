@@ -94,11 +94,11 @@ def split_sql_file(  # noqa: C901  too complex
                         output = new_output('%04d_epilogue.sql' % counter)
                     writelines([line])
             else:
-                if line != "\\.\n":
+                if line != "\\.\n":  # don't bother with empty COPY statements
                     output.close()
-                    new_position = sort_file_lines(sql_filepath, output.name, position, r"\.")
-                    print(f"sort_file_lines({sql_filepath!r}, {output.name!r}, {position}, r\"\\.\") == {new_position}")
-                    sql_file.seek(new_position)
+                    position_after_sql_copy = sort_file_lines(sql_filepath, output.name, position)
+                    # print(f"sort_file_lines({sql_filepath!r}, {output.name!r}, {position}) == {new_position}")
+                    sql_file.seek(position_after_sql_copy)
                     output = open(output.name, "a")
                 inside_sql_copy = False
             position = sql_file.tell()
