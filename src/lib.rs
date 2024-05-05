@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use external_sort::{ExternalSorter, ExternallySortable};
 use itertools::Itertools;
-use std::cmp::Ordering;
+use std::cmp::Ordering::{self, Equal, Greater, Less};
 use std::io::{BufRead, BufReader, Read, Seek, Write};
 use std::iter::Peekable;
 use std::path::PathBuf;
@@ -31,9 +31,9 @@ impl ExternallySortable for TsvLine {
 #[pyfunction]
 fn linecomp(l1: &str, l2: &str) -> i8 {
     match tsv_cmp(l1, l2) {
-        Ordering::Less => -1,
-        Ordering::Equal => 0,
-        Ordering::Greater => 1,
+        Less => -1,
+        Equal => 0,
+        Greater => 1,
     }
 }
 
@@ -162,10 +162,10 @@ fn tsv_sort(_py: Python, m: &PyModule) -> PyResult<()> {
 /// use pgtricks::tsv_cmp;
 /// use std::cmp::Ordering;
 ///
-/// assert_eq!(tsv_cmp("123", "123"), Ordering::Equal);
-/// assert_eq!(tsv_cmp("123", "124"), Ordering::Less);
-/// assert_eq!(tsv_cmp("124", "123"), Ordering::Greater);
-/// assert_eq!(tsv_cmp("123\tour", "123\town"), Ordering::Less);
+/// assert_eq!(tsv_cmp("123", "123"), Equal);
+/// assert_eq!(tsv_cmp("123", "124"), Less);
+/// assert_eq!(tsv_cmp("124", "123"), Greater);
+/// assert_eq!(tsv_cmp("123\tour", "123\town"), Less);
 ///
 pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
     let mut l1_chars = l1.chars().peekable();
@@ -174,22 +174,22 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
 
     'next_field: loop {
         // handle negative prefixes and end of lines
-        l1_larger = Ordering::Greater;  // reset negative prefix status for each new field
+        l1_larger = Greater;  // reset negative prefix status for each new field
         match (l1_chars.peek(), l2_chars.peek()) {
-            (Some(_), None) => return Ordering::Greater,  // end of line for l2, so l1 > l2
-            (None, Some(_)) => return Ordering::Less,  // end of line for l1, so l1 < l2
-            (None, None) => return Ordering::Equal,  // end of both lines, so l1 == l2
+            (Some(_), None) => return Greater,  // end of line for l2, so l1 > l2
+            (None, Some(_)) => return Less,  // end of line for l1, so l1 < l2
+            (None, None) => return Equal,  // end of both lines, so l1 == l2
             (Some('-'), Some('-')) => {  // both l1 and l2 have negative prefixes
-                l1_larger = Ordering::Less;  // invert the comparison of absolute values
+                l1_larger = Less;  // invert the comparison of absolute values
                 // skip the negative prefixes and start comparing absolute values
                 l1_chars.next();
                 l2_chars.next();
             }
             (Some('-'), Some(_)) => {  // only l1 has a negative prefix, so l1 < l2
-                return Ordering::Less;
+                return Less;
             }
             (Some(_), Some('-')) => {  // only l2 has a negative prefix, so l1 > l2
-                return Ordering::Greater;
+                return Greater;
             }
             (Some(_), Some(_)) => {}  // neither has a negative prefix, continue
         }
@@ -197,15 +197,14 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
         skip_leading_zeros(&mut l1_chars);
         skip_leading_zeros(&mut l2_chars);
 
-        let mut integer_order = Ordering::Equal;
+        let mut integer_order = Equal;
         loop {
             match (l1_chars.next(), l2_chars.next()) {
-                (Some('\t'), Some('\t')) => {
-                    // both fields have the same length
+                (Some('\t'), Some('\t')) => {  // fields are of same length (after minus and zeros)
                     match integer_order {
-                        Ordering::Less => return l1_larger.reverse(),
-                        Ordering::Greater => return l1_larger,
-                        Ordering::Equal => continue 'next_field,
+                        Less => return l1_larger.reverse(),
+                        Greater => return l1_larger,
+                        Equal => continue 'next_field,
                     }
                 }
                 (Some(_), None | Some('\t')) => {  // end of field or line for l2
@@ -213,16 +212,16 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
                 }
                 (None | Some('\t'), Some(_)) => {  // end of field or line for l1
                     return match integer_order {
-                        Ordering::Less => l1_larger.reverse(),  // by digits |l1| < |l2| anyway
-                        Ordering::Equal => l1_larger.reverse(),  // by convention, longer is larger
-                        Ordering::Greater => l1_larger,  // but digits differed and |l1| > |l2|
+                        Less => l1_larger.reverse(),  // by digits |l1| < |l2| anyway
+                        Equal => l1_larger.reverse(),  // by convention, longer is larger
+                        Greater => l1_larger,  // but digits differed and |l1| > |l2|
                     };
                 }
                 (None, None) => {  // end of both lines, result depends on digit comparison
                     return match integer_order {
-                        Ordering::Less => l1_larger.reverse(),
-                        Ordering::Equal => Ordering::Equal,
-                        Ordering::Greater => l1_larger,
+                        Less => l1_larger.reverse(),
+                        Equal => Equal,
+                        Greater => l1_larger,
                     };
                 }
                 (Some(c1), Some(c2)) => {
@@ -234,9 +233,9 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
                         // so the result depends on digit comparisons before the non-digit character
                         match integer_order {
                             // non-equal comparison before the non-digit character
-                            Ordering::Less => return l1_larger.reverse(),
-                            Ordering::Greater => return l1_larger,
-                            Ordering::Equal => {
+                            Less => return l1_larger.reverse(),
+                            Greater => return l1_larger,
+                            Equal => {
                                 // l1 and l2 have the same digits until the non-digit character
                                 if c1 == '.' {
                                     if c2 == '.' {
@@ -271,7 +270,7 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
             match (l1_chars.next(), l2_chars.next()) {
                 (Some(_), None) => return l1_larger,  // end of line for l2, so |l1| > |l2|
                 (None, Some(_)) => return l1_larger.reverse(),  // EOL for l1, so |l1| < |l2|
-                (None, None) => return Ordering::Equal,  // end of both lines, so l1 == l2
+                (None, None) => return Equal,  // end of both lines, so l1 == l2
                 (Some(c1), Some(c2)) => {
                     if c1 == '\t' {  // field ends in l1
                         if c2 == '\t' {  // field ends in l2, too
@@ -286,9 +285,9 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
                         return l1_larger;
                     }
                     match c1.cmp(&c2) {
-                        Ordering::Less => return l1_larger.reverse(),
-                        Ordering::Greater => return l1_larger,
-                        Ordering::Equal => continue,
+                        Less => return l1_larger.reverse(),
+                        Greater => return l1_larger,
+                        Equal => continue,
                     }
                 }
             }
@@ -317,106 +316,106 @@ mod tests {
 
     #[rstest]
     // integers, equal length
-    #[case("123", "123", Ordering::Equal)]
-    #[case("123", "124", Ordering::Less)]
-    #[case("124", "123", Ordering::Greater)]
+    #[case("123", "123", Equal)]
+    #[case("123", "124", Less)]
+    #[case("124", "123", Greater)]
     // integers, different length
-    #[case("123", "1234", Ordering::Less)]
-    #[case("1234", "123", Ordering::Greater)]
+    #[case("123", "1234", Less)]
+    #[case("1234", "123", Greater)]
     // negative integers
-    #[case("-123", "123", Ordering::Less)]
-    #[case("123", "-123", Ordering::Greater)]
-    #[case("-123", "-123", Ordering::Equal)]
-    #[case("-123", "-124", Ordering::Greater)]
-    #[case("-124", "-123", Ordering::Less)]
+    #[case("-123", "123", Less)]
+    #[case("123", "-123", Greater)]
+    #[case("-123", "-123", Equal)]
+    #[case("-123", "-124", Greater)]
+    #[case("-124", "-123", Less)]
     // integers vs. floats
-    #[case("123", "122.9", Ordering::Greater)]
-    #[case("123", "123.0", Ordering::Less)] // by convention, shorter notation is less than longer
-    #[case("123", "123.1", Ordering::Less)]
-    #[case("123.1", "123", Ordering::Greater)]
-    #[case("123.0", "123", Ordering::Greater)] // by convention, shorter notation is less than longer
-    #[case("122.9", "123", Ordering::Less)]
+    #[case("123", "122.9", Greater)]
+    #[case("123", "123.0", Less)] // by convention, shorter notation is less than longer
+    #[case("123", "123.1", Less)]
+    #[case("123.1", "123", Greater)]
+    #[case("123.0", "123", Greater)] // by convention, shorter notation is less than longer
+    #[case("122.9", "123", Less)]
     // floats vs. floats, equal length, same integer part
-    #[case("123.1", "123.1", Ordering::Equal)]
-    #[case("123.0", "123.1", Ordering::Less)]
-    #[case("123.1", "123.0", Ordering::Greater)]
+    #[case("123.1", "123.1", Equal)]
+    #[case("123.0", "123.1", Less)]
+    #[case("123.1", "123.0", Greater)]
     // floats vs. floats, different length, same integer part
-    #[case("123.0", "123.01", Ordering::Less)]
-    #[case("123.01", "123.0", Ordering::Greater)]
-    #[case("123.0", "123.00", Ordering::Less)] // by convention, shorter notation less than longer
-    #[case("123.00", "123.0", Ordering::Greater)] // by convention, shorter notation less than longer-
+    #[case("123.0", "123.01", Less)]
+    #[case("123.01", "123.0", Greater)]
+    #[case("123.0", "123.00", Less)] // by convention, shorter notation less than longer
+    #[case("123.00", "123.0", Greater)] // by convention, shorter notation less than longer-
     // floats vs. floats, same length, different integer part
-    #[case("123.0", "124.0", Ordering::Less)]
-    #[case("124.0", "123.0", Ordering::Greater)]
-    #[case("123.0", "124.1", Ordering::Less)]
-    #[case("124.1", "123.0", Ordering::Greater)]
+    #[case("123.0", "124.0", Less)]
+    #[case("124.0", "123.0", Greater)]
+    #[case("123.0", "124.1", Less)]
+    #[case("124.1", "123.0", Greater)]
     // floats vs. floats, different length, different integer part
-    #[case("123.0", "124.00", Ordering::Less)]
-    #[case("124.00", "123.0", Ordering::Greater)]
-    #[case("123.0", "124.01", Ordering::Less)]
-    #[case("124.01", "123.0", Ordering::Greater)]
+    #[case("123.0", "124.00", Less)]
+    #[case("124.00", "123.0", Greater)]
+    #[case("123.0", "124.01", Less)]
+    #[case("124.01", "123.0", Greater)]
     // negative floats
-    #[case("-123.0", "123.0", Ordering::Less)]
-    #[case("123.0", "-123.0", Ordering::Greater)]
-    #[case("-123.0", "-123.0", Ordering::Equal)]
-    #[case("-123.0", "-123.1", Ordering::Greater)]
-    #[case("-123.1", "-123.0", Ordering::Less)]
-    #[case("-123.0", "-123.00", Ordering::Greater)] // by convention, shorter notation less than long
-    #[case("-123.00", "-123.0", Ordering::Less)] // by convention, shorter notation less than long
-    #[case("-123.02", "-123.01", Ordering::Less)]
-    #[case("-123.01", "-123.02", Ordering::Greater)]
-    #[case("-123.00", "-123.01", Ordering::Greater)]
-    #[case("-123.01", "-123.00", Ordering::Less)]
-    #[case("-123.0", "-123.01", Ordering::Greater)]
-    #[case("-123.01", "-123.0", Ordering::Less)]
-    #[case("-123.0", "-124.0", Ordering::Greater)]
-    #[case("-124.0", "-123.0", Ordering::Less)]
-    #[case("-123.0", "-124.1", Ordering::Greater)]
-    #[case("-124.1", "-123.0", Ordering::Less)]
-    #[case("-123.0", "-124.00", Ordering::Greater)]
-    #[case("-124.00", "-123.0", Ordering::Less)]
-    #[case("-123.0", "-124.01", Ordering::Greater)]
-    #[case("-124.01", "-123.0", Ordering::Less)]
+    #[case("-123.0", "123.0", Less)]
+    #[case("123.0", "-123.0", Greater)]
+    #[case("-123.0", "-123.0", Equal)]
+    #[case("-123.0", "-123.1", Greater)]
+    #[case("-123.1", "-123.0", Less)]
+    #[case("-123.0", "-123.00", Greater)] // by convention, shorter notation less than long
+    #[case("-123.00", "-123.0", Less)] // by convention, shorter notation less than long
+    #[case("-123.02", "-123.01", Less)]
+    #[case("-123.01", "-123.02", Greater)]
+    #[case("-123.00", "-123.01", Greater)]
+    #[case("-123.01", "-123.00", Less)]
+    #[case("-123.0", "-123.01", Greater)]
+    #[case("-123.01", "-123.0", Less)]
+    #[case("-123.0", "-124.0", Greater)]
+    #[case("-124.0", "-123.0", Less)]
+    #[case("-123.0", "-124.1", Greater)]
+    #[case("-124.1", "-123.0", Less)]
+    #[case("-123.0", "-124.00", Greater)]
+    #[case("-124.00", "-123.0", Less)]
+    #[case("-123.0", "-124.01", Greater)]
+    #[case("-124.01", "-123.0", Less)]
     // negative integers vs. floats
-    #[case("-123", "123.0", Ordering::Less)]
-    #[case("123", "-123.0", Ordering::Greater)]
-    #[case("-123.0", "123", Ordering::Less)]
-    #[case("123.0", "-123", Ordering::Greater)]
-    #[case("-123", "123.1", Ordering::Less)]
-    #[case("123.1", "-123", Ordering::Greater)]
-    #[case("-123.1", "123", Ordering::Less)]
-    #[case("123", "-123.1", Ordering::Greater)]
-    #[case("-123", "123.0", Ordering::Less)]
-    #[case("123", "-123.0", Ordering::Greater)]
-    #[case("-123.0", "123", Ordering::Less)]
-    #[case("123.0", "-123", Ordering::Greater)]
-    #[case("-123", "123.00", Ordering::Less)]
-    #[case("123.00", "-123", Ordering::Greater)]
-    #[case("-123.00", "123", Ordering::Less)]
-    #[case("123", "-123.00", Ordering::Greater)]
-    #[case("-123", "123.01", Ordering::Less)]
-    #[case("123.01", "-123", Ordering::Greater)]
-    #[case("-123.01", "123", Ordering::Less)]
-    #[case("123", "-123.01", Ordering::Greater)]
+    #[case("-123", "123.0", Less)]
+    #[case("123", "-123.0", Greater)]
+    #[case("-123.0", "123", Less)]
+    #[case("123.0", "-123", Greater)]
+    #[case("-123", "123.1", Less)]
+    #[case("123.1", "-123", Greater)]
+    #[case("-123.1", "123", Less)]
+    #[case("123", "-123.1", Greater)]
+    #[case("-123", "123.0", Less)]
+    #[case("123", "-123.0", Greater)]
+    #[case("-123.0", "123", Less)]
+    #[case("123.0", "-123", Greater)]
+    #[case("-123", "123.00", Less)]
+    #[case("123.00", "-123", Greater)]
+    #[case("-123.00", "123", Less)]
+    #[case("123", "-123.00", Greater)]
+    #[case("-123", "123.01", Less)]
+    #[case("123.01", "-123", Greater)]
+    #[case("-123.01", "123", Less)]
+    #[case("123", "-123.01", Greater)]
     // non-numeric
-    #[case("123", "our", Ordering::Greater)]  // positive numbers considered greater than words
-    #[case("own", "-123", Ordering::Greater)]  // negative numbers considered less than words
-    #[case("our", "own", Ordering::Less)]  // negative numbers considered less than words
-    #[case("own", "our", Ordering::Greater)]  // negative numbers considered less than words
-    #[case("123our", "123own", Ordering::Less)]  // identical numeric prefix ignored
-    #[case("123own", "123our", Ordering::Greater)]
-    #[case("1234our", "123own", Ordering::Greater)]  // larger numeric prefix considered larger
-    #[case("123own", "1234our", Ordering::Less)]
-    #[case("12h34", "12h345", Ordering::Less)]  // non-decimal delimiter starts new integers
-    #[case("12h345", "12h34", Ordering::Greater)]
+    #[case("123", "our", Greater)]  // positive numbers considered greater than words
+    #[case("own", "-123", Greater)]  // negative numbers considered less than words
+    #[case("our", "own", Less)]  // negative numbers considered less than words
+    #[case("own", "our", Greater)]  // negative numbers considered less than words
+    #[case("123our", "123own", Less)]  // identical numeric prefix ignored
+    #[case("123own", "123our", Greater)]
+    #[case("1234our", "123own", Greater)]  // larger numeric prefix considered larger
+    #[case("123own", "1234our", Less)]
+    #[case("12h34", "12h345", Less)]  // non-decimal delimiter starts new integers
+    #[case("12h345", "12h34", Greater)]
     // multiple fields
-    #[case("identical\t12.34", "identical\t12.340", Ordering::Less)]
-    #[case("identical\t12.340", "identical\t12.34", Ordering::Greater)]
-    #[case("identical\tlines\n", "identical\tlines\n", Ordering::Equal)]
-    #[case("12\tfoo\n", "123\tfoo\n", Ordering::Less)]
-    #[case("42\tfoo\n", "42\tbar\n", Ordering::Greater)]
-    #[case("-42\tbar\n", "-42\tfoo\n", Ordering::Less)]
-    #[case("-42\tfoo\n", "-42\tbar\n", Ordering::Greater)]
+    #[case("identical\t12.34", "identical\t12.340", Less)]
+    #[case("identical\t12.340", "identical\t12.34", Greater)]
+    #[case("identical\tlines\n", "identical\tlines\n", Equal)]
+    #[case("12\tfoo\n", "123\tfoo\n", Less)]
+    #[case("42\tfoo\n", "42\tbar\n", Greater)]
+    #[case("-42\tbar\n", "-42\tfoo\n", Less)]
+    #[case("-42\tfoo\n", "-42\tbar\n", Greater)]
     fn test_linecomp(#[case] l1: &str, #[case] l2: &str, #[case] expected: Ordering) {
         assert_eq!(
             tsv_cmp(l1, l2),
