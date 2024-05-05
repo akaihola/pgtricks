@@ -242,22 +242,11 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
         // l1 and l2 have the same integer part, compare the fractional part
         loop {
             match (l1_chars.next(), l2_chars.next()) {
-                (Some(_), None) => return l1_larger,  // end of line for l2, so |l1| > |l2|
-                (None, Some(_)) => return l1_larger.reverse(),  // EOL for l1, so |l1| < |l2|
+                (Some(_), None | Some('\t')) => return l1_larger,  // l1 longer, so |l1| > |l2|
+                (None | Some('\t'), Some(_)) => return l1_larger.reverse(),  // l2 long, |l1| < |l2|
                 (None, None) => return Equal,  // end of both lines, so l1 == l2
-                (Some(c1), Some(c2)) => {
-                    if c1 == '\t' {  // field ends in l1
-                        if c2 == '\t' {  // field ends in l2, too
-                            // l1 and l2 have the same fractional part, they are equal
-                            continue 'next_field;
-                        }
-                        // l1 has fewer fractional digits than l2, so |l1| < |l2|
-                        return l1_larger.reverse();
-                    }
-                    if c2 == '\t' {  // field ends in l2
-                        // l1 has more fractional digits than l2, so |l1| > |l2|
-                        return l1_larger;
-                    }
+                (Some('\t'), Some('\t')) => continue 'next_field,  // values equal, continue
+                (Some(c1), Some(c2)) => {  // compare characters and return as soon as they differ
                     match c1.cmp(&c2) {
                         Less => return l1_larger.reverse(),
                         Greater => return l1_larger,
