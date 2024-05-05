@@ -48,6 +48,14 @@ fn sort_lines(lines: Vec<String>) -> Vec<String> {
 // This is the end marker for an SQL COPY stream:
 const SQL_COPY_END: &str = "\\.";
 
+macro_rules! DIGIT {
+    () => {
+        Some('0'..='9')
+    };
+}
+
+
+
 /// Merge sort a range of lines from an input file and write the result to another file.
 ///
 /// The function `sort_file_lines` seeks to the given start position in the input file, reads
@@ -103,7 +111,7 @@ fn sort_file_lines(input: PathBuf, output: PathBuf, start: u64) -> PyResult<u64>
         |a, b| tsv_cmp(a.the_line.as_str(), b.the_line.as_str()),
     ).unwrap();
     // Append the sorted lines to the output file
-    let output_file = OpenOptions::new().write(true).append(true).open(output)?;
+    let output_file = OpenOptions::new().append(true).open(output)?;
     let mut output = BufWriter::new(output_file);
     for line in iter {
         writeln!(output, "{}", line.unwrap().the_line)?;
@@ -198,59 +206,36 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
         skip_leading_zeros(&mut l1_chars);
         skip_leading_zeros(&mut l2_chars);
 
-        let mut integer_order = Equal;
+        let mut sorting_so_far = Equal;
         loop {
-            match (l1_chars.next(), l2_chars.next()) {
-                (Some('\t'), Some('\t')) => {  // fields are of same length (after minus and zeros)
-                    match integer_order {
-                        Less => return l1_larger.reverse(),
-                        Greater => return l1_larger,
-                        Equal => continue 'next_field,
-                    }
-                }
-                (Some(_), None | Some('\t')) => {  // end of field or line for l2
-                    return integer_order.then(l1_larger);  // so |l1| > |l2| unless digits differed
-                }
-                (None | Some('\t'), Some(_)) => {  // end of field or line for l1
-                    return match integer_order {
-                        Less => l1_larger.reverse(),  // by digits |l1| < |l2| anyway
-                        Equal => l1_larger.reverse(),  // by convention, longer is larger
-                        Greater => l1_larger,  // but digits differed and |l1| > |l2|
-                    };
-                }
-                (None, None) => {  // end of both lines, result depends on digit comparison
-                    return match integer_order {
-                        Less => l1_larger.reverse(),
-                        Equal => Equal,
-                        Greater => l1_larger,
-                    };
-                }
-                (Some(c1), Some(c2)) => {
-                    if !c1.is_ascii_digit() {
-                        if c2.is_ascii_digit() {  // l1 has a non-digit character, l2 has a digit
-                            return l1_larger.reverse();  // so l2 is longer, thus |l1| < |l2|
-                        };
-                        // both l1 and l2 have a non-digit character after the same number of digits
-                        // so the result depends on digit comparisons before the non-digit character
-                        match (integer_order, c1, c2) {
-                            // non-equal comparison before the non-digit character
-                            (Less, _, _) => return l1_larger.reverse(),
-                            (Greater, _, _) => return l1_larger,
-                            (Equal, '.', '.') => break,  // same int parts, now compare fractions
-                            (Equal, '.', _) => return l1_larger,  // l1 decimal, l2 int, |l1| > |l2|
-                            (Equal, _, '.') => return l1_larger.reverse(),  // l2 decimal, l1 int
-                            (Equal, _, _) => {}  // both have non-digits, continue comparison
-                        }
-                    } else if !c2.is_ascii_digit() {
-                        return l1_larger;  // l2 has a non-digit, l1 a digit, so |l1| > |l2|
-                    }
-                    // compare the next characters in l1 and l2, digit or not
-                    if integer_order.is_eq() {  // all characters so far have been equal
-                        integer_order = c1.cmp(&c2);  // so compare the current characters
-                        // note: we don't draw any conclusions yet, as we don't know if the number
-                        // of digits is the same in both lines
-                    }
-                }
+            match (l1_chars.next(), l2_chars.next(), sorting_so_far) {
+                // digits so far were identical, compare next digit. DIGIT!() matches '0'..='9'
+                (c1 @ DIGIT!(), c2 @ DIGIT!(), Equal) => sorting_so_far = c1.cmp(&c2),
+
+                // integer part ends in l1 or l2 before the other
+                (_, DIGIT!(), Equal) => return l1_larger.reverse(),  // l1 integer part shorter
+                (DIGIT!(), _, Equal) => return l1_larger,  // l1 integer part longer
+
+                // integer parts unequal and both end here (EOL, end of field, or decimal point)
+                (None | Some('\t' | '.'), None | Some('\t' | '.'), Less) => return l1_larger.reverse(),
+                (None | Some('\t' | '.'), None | Some('\t' | '.'), Greater) => return l1_larger,
+
+                // integer parts equal and both end here (EOL, end of field, or decimal point)
+                (None, None, Equal) => return Equal,  // end of line for both, so l1 == l2
+                (Some('\t'), Some('\t'), Equal) => continue 'next_field,  // end of field, continue
+                (Some('.'), Some('.'), Equal) => break,  // same int parts, now compare fractions
+                (Some('.'), Some(_), Equal) => return l1_larger,  // l1 decimal, l2 int, |l1| > |l2|
+                (Some(_), Some('.'), Equal) => return l1_larger.reverse(),  // l2 decimal, l1 int
+
+                // l1 is longer than l2
+                (Some(_), None | Some('\t'), _) => return l1_larger,
+                // l1 is shorter than l2
+                (None | Some('\t'), Some(_), _) => return l1_larger.reverse(),
+
+                // non-digits after equal integer parts, sort lexicographically
+                (c1 @ Some(_), c2 @ Some(_), Equal) => sorting_so_far = c1.cmp(&c2),
+                (Some(_), Some(_), Less) => return l1_larger.reverse(),
+                (Some(_), Some(_), Greater) => return l1_larger,
             }
         }
 
