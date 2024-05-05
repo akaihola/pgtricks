@@ -76,29 +76,29 @@ fn sort_lines(lines: Vec<String>) -> Vec<String> {
 ///
 #[pyfunction]
 fn sort_file_lines(input: &str, output: &str, start: u64, end: &str) -> PyResult<u64> {
-    let external_sorter = ExternalSorter::new(1000000, None);
-    // Open the input file
+    // Open the input file and seek to the start position
     let mut input_file = std::fs::File::open(input)?;
-    // Seek to the start position
     input_file.seek(std::io::SeekFrom::Start(start))?;
     // Wrap the input file in a buffered reader
     let mut input = BufReader::new(&mut input_file);
-    // Create an iterator which reads lines until the end marker
-    let lines = input
-        .by_ref()
-        .lines()
-        .take_while(|line| line.as_ref().map(|l| l != end).unwrap_or(false))
-        // convert the lines to TsvLine
+    // Create an iterator which reads lines until the end marker and doesn't consume the end marker
+    let mut binding = input.by_ref().lines().peekable();
+    let lines = binding
+        .peeking_take_while(|line| line.as_ref().map(|l| l != end).unwrap_or(false))
         .map(|line| TsvLine::new(&line.unwrap()));
     // Do the external sort
-    let iter = external_sorter.sort_by(lines, |a, b| tsv_cmp(a.the_line.as_str(), b.the_line.as_str())).unwrap();
-    // Open the output file
+    let iter = ExternalSorter::new(1000000, None).sort_by(
+        lines,
+        |a, b| tsv_cmp(a.the_line.as_str(), b.the_line.as_str()),
+    ).unwrap();
+    // Write the sorted lines to the output file
     let output_file = std::fs::File::create(output)?;
     let mut output = std::io::BufWriter::new(output_file);
-    // Write the sorted lines to the output file
     for line in iter {
         writeln!(output, "{}", line.unwrap().the_line)?;
     }
+    // Write the end marker (which was not consumed by peeking_take_while)
+    writeln!(output, "{}", binding.next().unwrap().unwrap())?;
     // return the stream position from the counting reader object
     Ok(input.stream_position().unwrap())
 }
