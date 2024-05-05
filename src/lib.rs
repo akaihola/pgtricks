@@ -91,6 +91,7 @@ fn sort_file_lines(input: PathBuf, output: PathBuf, start: u64) -> PyResult<u64>
     // Wrap the input file in a buffered reader
     let mut input = BufReader::new(&mut input_file);
     // Create an iterator which reads lines until the end marker and doesn't consume the end marker
+    // See https://stackoverflow.com/questions/39935158 for `.by_ref()` explanation
     let mut binding = input.by_ref().lines().peekable();
     let lines = binding
         .peeking_take_while(|line| line.as_ref().map(|l| l != SQL_COPY_END).unwrap_or(false))
