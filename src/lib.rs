@@ -199,10 +199,18 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
         let mut integer_order = Ordering::Equal;
         loop {
             match (l1_chars.next(), l2_chars.next()) {
-                (Some(_), None) => {  // end of line for l2
+                (Some('\t'), Some('\t')) => {
+                    // both fields have the same length
+                    match integer_order {
+                        Ordering::Less => return l1_larger.reverse(),
+                        Ordering::Greater => return l1_larger,
+                        Ordering::Equal => continue 'next_field,
+                    }
+                }
+                (Some(_), None | Some('\t')) => {  // end of field or line for l2
                     return integer_order.then(l1_larger);  // so |l1| > |l2| unless digits differed
                 }
-                (None, Some(_)) => {  // end of line for l1
+                (None | Some('\t'), Some(_)) => {  // end of field or line for l1
                     return match integer_order {
                         Ordering::Less => l1_larger.reverse(),  // by digits |l1| < |l2| anyway
                         Ordering::Equal => l1_larger.reverse(),  // by convention, longer is larger
@@ -406,6 +414,8 @@ mod tests {
     #[case("identical\tlines\n", "identical\tlines\n", Ordering::Equal)]
     #[case("12\tfoo\n", "123\tfoo\n", Ordering::Less)]
     #[case("42\tfoo\n", "42\tbar\n", Ordering::Greater)]
+    #[case("-42\tbar\n", "-42\tfoo\n", Ordering::Less)]
+    #[case("-42\tfoo\n", "-42\tbar\n", Ordering::Greater)]
     fn test_linecomp(#[case] l1: &str, #[case] l2: &str, #[case] expected: Ordering) {
         assert_eq!(
             tsv_cmp(l1, l2),
