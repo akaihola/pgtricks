@@ -1,7 +1,13 @@
 use pyo3::prelude::*;
 use external_sort::{ExternalSorter, ExternallySortable};
 use itertools::Itertools;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::cmp::Ordering;
+use std::io::{BufRead, BufReader, Read, Seek, Write};
+use std::iter::Peekable;
+use std::path::PathBuf;
+use std::str::Chars;
+use serde::{Deserialize, Serialize};
+
 
 // Define a string structure that can be sorted externally
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -37,6 +43,9 @@ fn sort_lines(lines: Vec<String>) -> Vec<String> {
     lines.sort_by(|a, b| tsv_cmp(a, b));
     lines
 }
+
+// This is the end marker for an SQL COPY stream:
+const SQL_COPY_END: &str = "\\.";
 
 /// Merge sort a range of lines from an input file and write the result to another file.
 ///
@@ -75,7 +84,7 @@ fn sort_lines(lines: Vec<String>) -> Vec<String> {
 /// ```
 ///
 #[pyfunction]
-fn sort_file_lines(input: &str, output: &str, start: u64, end: &str) -> PyResult<u64> {
+fn sort_file_lines(input: PathBuf, output: PathBuf, start: u64) -> PyResult<u64> {
     // Open the input file and seek to the start position
     let mut input_file = std::fs::File::open(input)?;
     input_file.seek(std::io::SeekFrom::Start(start))?;
@@ -84,7 +93,7 @@ fn sort_file_lines(input: &str, output: &str, start: u64, end: &str) -> PyResult
     // Create an iterator which reads lines until the end marker and doesn't consume the end marker
     let mut binding = input.by_ref().lines().peekable();
     let lines = binding
-        .peeking_take_while(|line| line.as_ref().map(|l| l != end).unwrap_or(false))
+        .peeking_take_while(|line| line.as_ref().map(|l| l != SQL_COPY_END).unwrap_or(false))
         .map(|line| TsvLine::new(&line.unwrap()));
     // Do the external sort
     let iter = ExternalSorter::new(1000000, None).sort_by(
@@ -291,12 +300,6 @@ fn skip_leading_zeros(field_chars: &mut Peekable<Chars>) {
 #[cfg(test)]
 #[macro_use]
 extern crate rstest;
-
-use std::cmp::Ordering;
-use std::io::Seek;
-use std::iter::Peekable;
-use std::str::Chars;
-use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 mod tests {
