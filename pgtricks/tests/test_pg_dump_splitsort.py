@@ -2,13 +2,9 @@ from functools import cmp_to_key
 from textwrap import dedent
 
 import pytest
+from pgtricks._tsv_sort import linecomp
 
-from pgtricks.pg_dump_splitsort import (
-    COPY_RE,
-    linecomp,
-    memory_size,
-    split_sql_file,
-)
+from pgtricks.pg_dump_splitsort import COPY_RE, memory_size, split_sql_file
 
 
 @pytest.mark.parametrize(
@@ -96,10 +92,10 @@ def test_linecomp_by_sorting():
         [r"\N", "-.52", "baz"],
         [r"\N", "-.4", "foo"],
         [r"\N", "", r"\N"],
-        [r"\N", ".42", "bar"],
         [r"\N", r"\N", ""],
         [r"\N", r"\N", r"\N"],
         [r"\N", "foo", ".42"],
+        [r"\N", ".42", "bar"],
         [r"\N", "42", r"\N"],
     ]
 
