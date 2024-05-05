@@ -173,6 +173,8 @@ def split_sql_file(  # noqa: C901  too complex
     with open(sql_filepath) as sql_file:
         while True:
             line = sql_file.readline()
+            if not line:
+                break
             if sorted_data_lines is None:
                 if line in ('\n', '--\n'):
                     buf.append(line)
