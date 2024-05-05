@@ -162,23 +162,23 @@ EPILOGUE = dedent(
 )
 
 
-def test_split_sql_file(tmpdir):
+def test_split_sql_file(tmp_path):
     """Test splitting a SQL file with COPY statements."""
-    sql_file = tmpdir / "test.sql"
-    sql_file.write(PROLOGUE + TABLE1_COPY + EPILOGUE)
+    sql_file = tmp_path / "test.sql"
+    sql_file.write_text(PROLOGUE + TABLE1_COPY + EPILOGUE)
 
     split_sql_file(sql_file, max_memory=190)
 
-    split_files = sorted(path.relto(tmpdir) for path in tmpdir.listdir())
+    split_files = sorted(str(path.relative_to(tmp_path)) for path in tmp_path.iterdir())
     assert split_files == [
         "0000_prologue.sql",
         "0001_public.table1.sql",
         "9999_epilogue.sql",
         "test.sql",
     ]
-    assert (tmpdir / "0000_prologue.sql").read() == PROLOGUE
-    assert (tmpdir / "0001_public.table1.sql").read() == TABLE1_COPY_SORTED
-    assert (tmpdir / "9999_epilogue.sql").read() == EPILOGUE
+    assert (tmp_path / "0000_prologue.sql").read_text() == PROLOGUE
+    assert (tmp_path / "0001_public.table1.sql").read_text() == TABLE1_COPY_SORTED
+    assert (tmp_path / "9999_epilogue.sql").read_text() == EPILOGUE
 
 
 @pytest.mark.parametrize(
