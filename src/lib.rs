@@ -100,8 +100,8 @@ fn sort_file_lines(input: PathBuf, output: PathBuf, start: u64) -> PyResult<u64>
         lines,
         |a, b| tsv_cmp(a.the_line.as_str(), b.the_line.as_str()),
     ).unwrap();
-    // Write the sorted lines to the output file
-    let output_file = std::fs::File::create(output)?;
+    // Append the sorted lines to the output file
+    let output_file = std::fs::OpenOptions::new().write(true).append(true).open(output)?;
     let mut output = std::io::BufWriter::new(output_file);
     for line in iter {
         writeln!(output, "{}", line.unwrap().the_line)?;
