@@ -232,26 +232,14 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
                         };
                         // both l1 and l2 have a non-digit character after the same number of digits
                         // so the result depends on digit comparisons before the non-digit character
-                        match integer_order {
+                        match (integer_order, c1, c2) {
                             // non-equal comparison before the non-digit character
-                            Less => return l1_larger.reverse(),
-                            Greater => return l1_larger,
-                            Equal => {
-                                // l1 and l2 have the same digits until the non-digit character
-                                if c1 == '.' {
-                                    if c2 == '.' {
-                                        // it was a decimal point in both, and as both have the same
-                                        // integer part, now compare the fractional parts
-                                        break;
-                                    }
-                                    return l1_larger;  // l1 has fraction, l2 not, so |l1| > |l2|
-                                }
-                                if c2 == '.' {
-                                    return l1_larger.reverse();  // l2 has, l1 not, so |l1| < |l2|
-                                }
-                                // both l1 and l2 have a non-digit character, and it's not a
-                                // decimal, so we shift to non-numeric comparison below
-                            }
+                            (Less, _, _) => return l1_larger.reverse(),
+                            (Greater, _, _) => return l1_larger,
+                            (Equal, '.', '.') => break,  // same int parts, now compare fractions
+                            (Equal, '.', _) => return l1_larger,  // l1 decimal, l2 int, |l1| > |l2|
+                            (Equal, _, '.') => return l1_larger.reverse(),  // l2 decimal, l1 int
+                            (Equal, _, _) => {}  // both have non-digits, continue comparison
                         }
                     } else if !c2.is_ascii_digit() {
                         return l1_larger;  // l2 has a non-digit, l1 a digit, so |l1| > |l2|
