@@ -2,7 +2,8 @@ use pyo3::prelude::*;
 use external_sort::{ExternalSorter, ExternallySortable};
 use itertools::Itertools;
 use std::cmp::Ordering::{self, Equal, Greater, Less};
-use std::io::{BufRead, BufReader, Read, Seek, Write};
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::iter::Peekable;
 use std::path::PathBuf;
 use std::str::Chars;
@@ -86,8 +87,8 @@ const SQL_COPY_END: &str = "\\.";
 #[pyfunction]
 fn sort_file_lines(input: PathBuf, output: PathBuf, start: u64) -> PyResult<u64> {
     // Open the input file and seek to the start position
-    let mut input_file = std::fs::File::open(input)?;
-    input_file.seek(std::io::SeekFrom::Start(start))?;
+    let mut input_file = File::open(input)?;
+    input_file.seek(SeekFrom::Start(start))?;
     // Wrap the input file in a buffered reader
     let mut input = BufReader::new(&mut input_file);
     // Create an iterator which reads lines until the end marker and doesn't consume the end marker
@@ -102,8 +103,8 @@ fn sort_file_lines(input: PathBuf, output: PathBuf, start: u64) -> PyResult<u64>
         |a, b| tsv_cmp(a.the_line.as_str(), b.the_line.as_str()),
     ).unwrap();
     // Append the sorted lines to the output file
-    let output_file = std::fs::OpenOptions::new().write(true).append(true).open(output)?;
-    let mut output = std::io::BufWriter::new(output_file);
+    let output_file = OpenOptions::new().write(true).append(true).open(output)?;
+    let mut output = BufWriter::new(output_file);
     for line in iter {
         writeln!(output, "{}", line.unwrap().the_line)?;
     }
