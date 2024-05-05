@@ -169,10 +169,11 @@ fn tsv_sort(_py: Python, m: &PyModule) -> PyResult<()> {
 pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
     let mut l1_chars = l1.chars().peekable();
     let mut l2_chars = l2.chars().peekable();
-    let mut l1_larger = Ordering::Greater;
+    let mut l1_larger;
 
     'next_field: loop {
         // handle negative prefixes and end of lines
+        l1_larger = Ordering::Greater;  // reset negative prefix status for each new field
         match (l1_chars.peek(), l2_chars.peek()) {
             (Some(_), None) => return Ordering::Greater,  // end of line for l2, so l1 > l2
             (None, Some(_)) => return Ordering::Less,  // end of line for l1, so l1 < l2
