@@ -54,6 +54,20 @@ macro_rules! DIGIT {
 }
 
 
+// Add a `.reverse_if_less()` method to the `Ordering` enum
+trait ReverseIfLess {
+    fn reverse_if_less(self, other: Ordering) -> Ordering;
+}
+
+impl ReverseIfLess for Ordering {
+    fn reverse_if_less(self, other: Ordering) -> Ordering {
+        match other {
+            Less => self.reverse(),
+            _ => self,
+        }
+    }
+}
+
 
 /// Merge sort a range of lines from an input file and write the result to another file.
 ///
@@ -216,8 +230,9 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
                 (DIGIT!(), _, _) => return l1_larger,  // l1 integer part longer
 
                 // integer parts unequal and both end here (EOL, end of field, or decimal point)
-                (None | Some('\t' | '.'), None | Some('\t' | '.'), Less) => return l1_larger.reverse(),
-                (None | Some('\t' | '.'), None | Some('\t' | '.'), Greater) => return l1_larger,
+                (None | Some('\t' | '.'), None | Some('\t' | '.'), Less | Greater) => {
+                    return l1_larger.reverse_if_less(sorting_so_far)
+                },
 
                 // integer parts equal and both end here (EOL, end of field, or decimal point)
                 (Some('\t'), Some('\t'), Equal) => continue 'next_field,  // end of field, continue
@@ -237,8 +252,7 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
 
                 // non-digits after equal integer parts, sort lexicographically
                 (c1 @ Some(_), c2 @ Some(_), Equal) => sorting_so_far = c1.cmp(&c2),
-                (Some(_), Some(_), Less) => return l1_larger.reverse(),
-                (Some(_), Some(_), Greater) => return l1_larger,
+                (Some(_), Some(_), Less | Greater) => return l1_larger.reverse_if_less(sorting_so_far),
             }
         }
 
@@ -251,9 +265,8 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
                 (None, None) => return Equal,  // end of both lines, so l1 == l2
                 (Some(c1), Some(c2)) => {  // compare characters and return as soon as they differ
                     match c1.cmp(&c2) {
-                        Less => return l1_larger.reverse(),
-                        Greater => return l1_larger,
                         Equal => continue,
+                        s => return l1_larger.reverse_if_less(s),
                     }
                 }
             }
