@@ -316,6 +316,7 @@ mod tests {
     #[case("124.00", "123.0", Greater)]
     #[case("123.0", "124.01", Less)]
     #[case("124.01", "123.0", Greater)]
+    #[case("\"32.0\"", "\"4.20\"", Greater)]
     // negative floats
     #[case("-123.0", "123.0", Less)]
     #[case("123.0", "-123.0", Greater)]
@@ -359,6 +360,27 @@ mod tests {
     #[case("123.01", "-123", Greater)]
     #[case("-123.01", "123", Less)]
     #[case("123", "-123.01", Greater)]
+    // NULL vs int
+    #[case("\\N", "\\N", Equal)]
+    #[case("\\N", "123", Less)]
+    #[case("123", "\\N", Greater)]
+    #[case("\\N", "-123", Greater)]
+    #[case("-123", "\\N", Less)]
+    // NULL vs float
+    #[case("\\N", "123.0", Less)]
+    #[case("123.0", "\\N", Greater)]
+    #[case("\\N", "0.42", Less)]
+    #[case("0.42", "\\N", Greater)]
+    #[case("\\N", ".42", Less)]
+    #[case(".42", "\\N", Greater)]
+    #[case("\\N", "-123.0", Greater)]
+    #[case("-123.0", "\\N", Less)]
+    // NULL vs string
+    #[case("\\N", "foo", Less)]
+    #[case("foo", "\\N", Greater)]
+    // NULL vs empty string
+    #[case("\\N", "", Greater)]
+    #[case("", "\\N", Less)]
     // non-numeric
     #[case("123", "our", Greater)]  // positive numbers considered greater than words
     #[case("own", "-123", Greater)]  // negative numbers considered less than words
@@ -378,6 +400,14 @@ mod tests {
     #[case("42\tfoo\n", "42\tbar\n", Greater)]
     #[case("-42\tbar\n", "-42\tfoo\n", Less)]
     #[case("-42\tfoo\n", "-42\tbar\n", Greater)]
+    #[case("42\t", "42\t", Equal)]
+    #[case("42\t\n", "42\t\n", Equal)]
+    #[case("42.0\t", "42.0\t", Equal)]
+    #[case("42.0\t\n", "42.0\t\n", Equal)]
+    #[case("-42\t", "-42\t", Equal)]
+    #[case("-42\t\n", "-42\t\n", Equal)]
+    #[case("-42.0\t", "-42.0\t", Equal)]
+    #[case("-42.0\t\n", "-42.0\t\n", Equal)]
     fn test_linecomp(#[case] l1: &str, #[case] l2: &str, #[case] expected: Ordering) {
         assert_eq!(
             tsv_cmp(l1, l2),
