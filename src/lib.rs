@@ -184,9 +184,6 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
         // handle negative prefixes and end of lines
         l1_larger = Greater;  // reset negative prefix status for each new field
         match (l1_chars.peek(), l2_chars.peek()) {
-            (Some(_), None) => return Greater,  // end of line for l2, so l1 > l2
-            (None, Some(_)) => return Less,  // end of line for l1, so l1 < l2
-            (None, None) => return Equal,  // end of both lines, so l1 == l2
             (Some('-'), Some('-')) => {  // both l1 and l2 have negative prefixes
                 l1_larger = Less;  // invert the comparison of absolute values
                 // skip the negative prefixes and start comparing absolute values
@@ -200,6 +197,9 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
                 return Greater;
             }
             (Some(_), Some(_)) => {}  // neither has a negative prefix, continue
+            (Some(_), None) => return Greater,  // end of line for l2, so l1 > l2
+            (None, Some(_)) => return Less,  // end of line for l1, so l1 < l2
+            (None, None) => return Equal,  // end of both lines, so l1 == l2
         }
 
         skip_leading_zeros(&mut l1_chars);
@@ -241,10 +241,10 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
         // l1 and l2 have the same integer part, compare the fractional part
         loop {
             match (l1_chars.next(), l2_chars.next()) {
+                (Some('\t'), Some('\t')) => continue 'next_field,  // values equal, continue
                 (Some(_), None | Some('\t')) => return l1_larger,  // l1 longer, so |l1| > |l2|
                 (None | Some('\t'), Some(_)) => return l1_larger.reverse(),  // l2 long, |l1| < |l2|
                 (None, None) => return Equal,  // end of both lines, so l1 == l2
-                (Some('\t'), Some('\t')) => continue 'next_field,  // values equal, continue
                 (Some(c1), Some(c2)) => {  // compare characters and return as soon as they differ
                     match c1.cmp(&c2) {
                         Less => return l1_larger.reverse(),
