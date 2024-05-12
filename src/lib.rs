@@ -425,7 +425,7 @@ mod tests {
     #[case("-42\t\n", "-42\t\n", Equal)]
     #[case("-42.0\t", "-42.0\t", Equal)]
     #[case("-42.0\t\n", "-42.0\t\n", Equal)]
-    fn test_linecomp(#[case] l1: &str, #[case] l2: &str, #[case] expected: Ordering) {
+    fn test_tsv_cmp(#[case] l1: &str, #[case] l2: &str, #[case] expected: Ordering) {
         assert_eq!(
             tsv_cmp(l1, l2),
             expected,
