@@ -212,24 +212,28 @@ pub fn tsv_cmp(l1: &str, l2: &str) -> Ordering {
                 (c1 @ DIGIT!(), c2 @ DIGIT!(), Equal) => sorting_so_far = c1.cmp(&c2),
 
                 // integer part ends in l1 or l2 before the other
-                (_, DIGIT!(), Equal) => return l1_larger.reverse(),  // l1 integer part shorter
-                (DIGIT!(), _, Equal) => return l1_larger,  // l1 integer part longer
+                (_, DIGIT!(), _) => return l1_larger.reverse(),  // l1 integer part shorter
+                (DIGIT!(), _, _) => return l1_larger,  // l1 integer part longer
 
                 // integer parts unequal and both end here (EOL, end of field, or decimal point)
                 (None | Some('\t' | '.'), None | Some('\t' | '.'), Less) => return l1_larger.reverse(),
                 (None | Some('\t' | '.'), None | Some('\t' | '.'), Greater) => return l1_larger,
 
                 // integer parts equal and both end here (EOL, end of field, or decimal point)
-                (None, None, Equal) => return Equal,  // end of line for both, so l1 == l2
                 (Some('\t'), Some('\t'), Equal) => continue 'next_field,  // end of field, continue
+                // integer parts are of different length
+                (Some(_), None | Some('\t'), _) => return l1_larger,  // l1 is longer than l2
+                (None | Some('\t'), Some(_), _) => return l1_larger.reverse(),  // l2 longer than l1
+                // equal characters inside the field, compare next characters
+                (Some(a), Some(b), _) if a == b => continue,
+                // NULL
+                (Some('\\'), Some(_), Equal) => return l1_larger.reverse(),  // backslash smallest
+                (Some(_), Some('\\'), Equal) => return l1_larger,  // backslash smallest
+                // integer parts equal, decimal part begins or line ends
                 (Some('.'), Some('.'), Equal) => break,  // same int parts, now compare fractions
-                (Some('.'), Some(_), Equal) => return l1_larger,  // l1 decimal, l2 int, |l1| > |l2|
-                (Some(_), Some('.'), Equal) => return l1_larger.reverse(),  // l2 decimal, l1 int
-
-                // l1 is longer than l2
-                (Some(_), None | Some('\t'), _) => return l1_larger,
-                // l1 is shorter than l2
-                (None | Some('\t'), Some(_), _) => return l1_larger.reverse(),
+                (Some('.'), Some(_), Equal) => return l1_larger.reverse(),  // l1 decimal, l2 int
+                (Some(_), Some('.'), _) => return l1_larger,  // l2 decimal, l1 int
+                (None, None, Equal) => return Equal,  // end of line for both, so l1 == l2
 
                 // non-digits after equal integer parts, sort lexicographically
                 (c1 @ Some(_), c2 @ Some(_), Equal) => sorting_so_far = c1.cmp(&c2),
