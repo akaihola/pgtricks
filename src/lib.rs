@@ -1,6 +1,5 @@
 use pyo3::prelude::*;
 use external_sort::{ExternalSorter, ExternallySortable};
-use itertools::Itertools;
 use std::cmp::Ordering::{self, Equal, Greater, Less};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Read, Seek, SeekFrom, Write};
@@ -101,9 +100,9 @@ fn sort_file_lines(input: PathBuf, output: PathBuf, start: u64) -> PyResult<u64>
     let mut input = BufReader::new(&mut input_file);
     // Create an iterator which reads lines until the end marker and doesn't consume the end marker
     // See https://stackoverflow.com/questions/39935158 for `.by_ref()` explanation
-    let mut binding = input.by_ref().lines().peekable();
+    let binding = input.by_ref().lines().peekable();
     let lines = binding
-        .peeking_take_while(|line| line.as_ref().map(|l| l != SQL_COPY_END).unwrap_or(false))
+        .take_while(|line| line.as_ref().map(|l| l != SQL_COPY_END).unwrap_or(false))
         .map(|line| TsvLine::new(&line.unwrap()));
     // Do the external sort
     let iter = ExternalSorter::new(1000000, None).sort_by(
@@ -117,7 +116,7 @@ fn sort_file_lines(input: PathBuf, output: PathBuf, start: u64) -> PyResult<u64>
         writeln!(output, "{}", line.unwrap().the_line)?;
     }
     // Write the end marker (which was not consumed by peeking_take_while)
-    writeln!(output, "{}", binding.next().unwrap().unwrap())?;
+    writeln!(output, "{SQL_COPY_END}")?;
     // return the stream position from the counting reader object
     Ok(input.stream_position().unwrap())
 }
