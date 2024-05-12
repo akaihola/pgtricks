@@ -1,6 +1,51 @@
 [build-system]
 # Minimum requirements for the build system to execute.
-requires = ["setuptools", "wheel"]  # PEP 508 specifications.
+requires = ["maturin>=1.5,<2.0"]  # PEP 508 specifications.
+build-backend = "maturin"
+
+[project]
+name = "pgtricks"
+dynamic = ["version"]
+authors = [
+    {name = "Antti Kaihola", email = "13725+akaihola@users.noreply.github.com"},
+]
+maintainers = [
+    {name = "Antti Kaihola", email = "13725+akaihola@users.noreply.github.com"},
+]
+description = "PostgreSQL utilities"
+readme = "README.rst"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: System :: Archiving :: Backup",
+]
+keywords = ["postgresql", "database", "backup", "restore", "pg_dump", "git"]
+
+[project.urls]
+Homepage = "https://github.com/akaihola/pgtricks"
+Repository = "https://github.com/akaihola/pgtricks"
+Issues = "https://github.com/akaihola/pgtricks/issues"
+Changelog = "https://github.com/akaihola/pgtricks/blob/master/CHANGES.rst"
+
+[project.scripts]
+pg_dump_splitsort = "pgtricks.pg_dump_splitsort:main"
+pg_split_schema_dump = "pgtricks.pg_split_schema_dump:main"
+pg_incremental_backup = "pgtricks.pg_incremental_backup:main"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "pgtricks._tsv_sort"
 
 [tool.ruff]
 target-version = "py38"

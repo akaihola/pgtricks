@@ -5,3 +5,7 @@
 /build
 /dist
 /*.egg
+
+# Added by cargo
+
+/target
