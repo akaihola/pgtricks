@@ -38,6 +38,16 @@ Repository = "https://github.com/akaihola/pgtricks"
 Issues = "https://github.com/akaihola/pgtricks/issues"
 Changelog = "https://github.com/akaihola/pgtricks/blob/master/CHANGES.rst"
 
+[project.optional-dependencies]
+test = [
+    "darker[isort]",
+    "flake8",
+    "mypy",
+    "pylint",
+    "pytest",
+    "pytest-mypy",
+]
+
 [project.scripts]
 pg_dump_splitsort = "pgtricks.pg_dump_splitsort:main"
 pg_split_schema_dump = "pgtricks.pg_split_schema_dump:main"
