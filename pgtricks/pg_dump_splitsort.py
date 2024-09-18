@@ -2,42 +2,17 @@
 
 from __future__ import annotations
 
-import functools
 import io
 import os
 import re
 from argparse import ArgumentParser
-from typing import IO, Iterable, Match, Pattern, cast
+from typing import IO, Iterable, Match, Pattern
 
-from pgtricks.mergesort import MergeSort
+from pgtricks._tsv_sort import sort_file_lines
 
 COPY_RE = re.compile(r"COPY\s+\S+\s+(\(.*?\)\s+)?FROM\s+stdin;\n$")
 KIBIBYTE, MEBIBYTE, GIBIBYTE = 2**10, 2**20, 2**30
 MEMORY_UNITS = {"": 1, "k": KIBIBYTE, "m": MEBIBYTE, "g": GIBIBYTE}
-
-
-def try_float(s1: str, s2: str) -> tuple[str, str] | tuple[float, float]:
-    """Convert two strings to floats. Return original ones on conversion error."""
-    if not s1 or not s2 or s1[0] not in '0123456789.-' or s2[0] not in '0123456789.-':
-        # optimization
-        return s1, s2
-    try:
-        return float(s1), float(s2)
-    except ValueError:
-        return s1, s2
-
-
-def linecomp(l1: str, l2: str) -> int:
-    p1 = l1.split('\t', 1)
-    p2 = l2.split('\t', 1)
-    # TODO: unquote cast after support for Python 3.8 is dropped
-    v1, v2 = cast("tuple[float, float]", try_float(p1[0], p2[0]))
-    result = (v1 > v2) - (v1 < v2)
-    # modifying a line to see whether Darker works:
-    if not result and len(p1) == len(p2) == 2:
-        return linecomp(p1[1], p2[1])
-    return result
-
 DATA_COMMENT_RE = re.compile('-- Data for Name: (?P<table>.*?); '
                              'Type: TABLE DATA; '
                              'Schema: (?P<schema>.*?);')
@@ -86,43 +61,47 @@ def split_sql_file(  # noqa: C901  too complex
             output.close()
         return open(os.path.join(directory, filename), 'w')
 
-    sorted_data_lines: MergeSort | None = None
+    inside_sql_copy: bool = False
     counter = 0
     output = new_output('0000_prologue.sql')
     matcher = Matcher()
 
-    for line in open(sql_filepath):
-        if sorted_data_lines is None:
-            if line in ('\n', '--\n'):
-                buf.append(line)
-            elif line.startswith('SET search_path = '):
-                writelines([line])
+    position = 0
+    with open(sql_filepath) as sql_file:
+        while True:
+            line = sql_file.readline()
+            if not line:
+                break
+            if not inside_sql_copy:
+                if line in ('\n', '--\n'):
+                    buf.append(line)
+                elif line.startswith('SET search_path = '):
+                    writelines([line])
+                else:
+                    if matcher.match(DATA_COMMENT_RE, line):
+                        counter += 1
+                        output = new_output(
+                            '{counter:04}_{schema}.{table}.sql'.format(
+                                counter=counter,
+                                schema=matcher.group('schema'),
+                                table=matcher.group('table')))
+                    elif COPY_RE.match(line):
+                        inside_sql_copy = True
+                    elif SEQUENCE_SET_RE.match(line):
+                        pass
+                    elif 1 <= counter < 9999:
+                        counter = 9999
+                        output = new_output('%04d_epilogue.sql' % counter)
+                    writelines([line])
             else:
-                if matcher.match(DATA_COMMENT_RE, line):
-                    counter += 1
-                    output = new_output(
-                        '{counter:04}_{schema}.{table}.sql'.format(
-                            counter=counter,
-                            schema=matcher.group('schema'),
-                            table=matcher.group('table')))
-                elif COPY_RE.match(line):
-                    sorted_data_lines = MergeSort(
-                        key=functools.cmp_to_key(linecomp),
-                        max_memory=max_memory,
-                    )
-                elif SEQUENCE_SET_RE.match(line):
-                    pass
-                elif 1 <= counter < 9999:
-                    counter = 9999
-                    output = new_output('%04d_epilogue.sql' % counter)
-                writelines([line])
-        else:
-            if line == "\\.\n":
-                writelines(sorted_data_lines)
-                writelines(line)
-                sorted_data_lines = None
-            else:
-                sorted_data_lines.append(line)
+                if line != "\\.\n":  # don't bother with empty COPY statements
+                    output.close()
+                    position_after_sql_copy = sort_file_lines(sql_filepath, output.name, position)
+                    # print(f"sort_file_lines({sql_filepath!r}, {output.name!r}, {position}) == {new_position}")
+                    sql_file.seek(position_after_sql_copy)
+                    output = open(output.name, "a")
+                inside_sql_copy = False
+            position = sql_file.tell()
     flush()
 
 
