@@ -47,6 +47,9 @@ test = [
     "pytest",
     "pytest-mypy",
 ]
+release = [
+    "darkgray-dev-tools~=0.0.2",
+]
 
 [project.scripts]
 pg_dump_splitsort = "pgtricks.pg_dump_splitsort:main"
