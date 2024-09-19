@@ -13,7 +13,7 @@ maintainers = [
     {name = "Antti Kaihola", email = "13725+akaihola@users.noreply.github.com"},
 ]
 description = "PostgreSQL utilities"
-readme = "README.rst"
+readme = "README.PyPI.rst"
 requires-python = ">=3.8"
 classifiers = [
     "Development Status :: 4 - Beta",
