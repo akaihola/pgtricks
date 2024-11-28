@@ -5,6 +5,11 @@ These features will be included in the next release:
 
 Added
 -----
+- Builds for Python 3.10, 3.11 and 3.12.
+
+Removed
+-------
+- Support for Python 3.7.
 
 Fixed
 -----
